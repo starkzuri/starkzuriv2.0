@@ -61,8 +61,9 @@ export const mockPredictions: Prediction[] = [
     question: 'Will SpaceX land humans on Mars in 2026?',
     category: 'Space',
     media: {
-      type: 'image',
-      url: 'https://images.unsplash.com/photo-1526666923127-b2970f64b422?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzcGFjZSUyMHRlY2hub2xvZ3l8ZW58MXx8fHwxNzY1MzAzNzI4fDA&ixlib=rb-4.1.0&q=80&w=1080',
+      type: 'video',
+      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+      thumbnail: 'https://images.unsplash.com/photo-1526666923127-b2970f64b422?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzcGFjZSUyMHRlY2hub2xvZ3l8ZW58MXx8fHwxNzY1MzAzNzI4fDA&ixlib=rb-4.1.0&q=80&w=1080',
     },
     yesPrice: 0.18,
     noPrice: 0.82,
@@ -86,8 +87,9 @@ export const mockPredictions: Prediction[] = [
     question: 'Lakers to win NBA Championship 2026?',
     category: 'Sports',
     media: {
-      type: 'image',
-      url: 'https://images.unsplash.com/photo-1650805174015-53ceeec12c40?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzcG9ydHMlMjBhY3Rpb258ZW58MXx8fHwxNzY1MjE4NzU2fDA&ixlib=rb-4.1.0&q=80&w=1080',
+      type: 'video',
+      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+      thumbnail: 'https://images.unsplash.com/photo-1650805174015-53ceeec12c40?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzcG9ydHMlMjBhY3Rpb258ZW58MXx8fHwxNzY1MjE4NzU2fDA&ixlib=rb-4.1.0&q=80&w=1080',
     },
     yesPrice: 0.55,
     noPrice: 0.45,

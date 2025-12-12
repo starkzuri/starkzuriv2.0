@@ -1,18 +1,27 @@
-import { Home, TrendingUp, PlusSquare, Wallet, User } from 'lucide-react';
+import { Home, TrendingUp, PlusCircle, Wallet, User, Award, LogIn } from 'lucide-react';
 
 interface BottomNavProps {
   activeScreen: string;
   onNavigate: (screen: string) => void;
+  isLoggedIn: boolean;
+  onLogin: () => void;
 }
 
-export function BottomNav({ activeScreen, onNavigate }: BottomNavProps) {
-  const navItems = [
-    { id: 'home', label: 'Home', icon: Home },
-    { id: 'market', label: 'Market', icon: TrendingUp },
-    { id: 'create', label: 'Create', icon: PlusSquare },
-    { id: 'portfolio', label: 'Portfolio', icon: Wallet },
-    { id: 'profile', label: 'Profile', icon: User },
+export function BottomNav({ activeScreen, onNavigate, isLoggedIn, onLogin }: BottomNavProps) {
+  const publicNavItems = [
+    { id: 'home', icon: Home, label: 'Home' },
+    { id: 'market', icon: TrendingUp, label: 'Explore' },
   ];
+
+  const authenticatedNavItems = [
+    { id: 'home', icon: Home, label: 'Home' },
+    { id: 'market', icon: TrendingUp, label: 'Explore' },
+    { id: 'create', icon: PlusCircle, label: 'Create' },
+    { id: 'rewards', icon: Award, label: 'Rewards' },
+    { id: 'profile', icon: User, label: 'Profile' },
+  ];
+
+  const navItems = isLoggedIn ? authenticatedNavItems : publicNavItems;
 
   return (
     <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#0a0a0f] border-t border-[#1F87FC]/20 px-2 py-2 z-50">
@@ -35,6 +44,19 @@ export function BottomNav({ activeScreen, onNavigate }: BottomNavProps) {
             <span className="text-xs">{item.label}</span>
           </button>
         ))}
+        
+        {/* Login Button when not authenticated */}
+        {!isLoggedIn && (
+          <button
+            onClick={onLogin}
+            className="flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-all text-[#1F87FC]"
+          >
+            <div className="w-6 h-6 rounded-full bg-gradient-to-r from-[#1F87FC] to-[#00ffcc] flex items-center justify-center drop-shadow-[0_0_8px_rgba(31,135,252,0.8)]">
+              <LogIn className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-xs">Connect</span>
+          </button>
+        )}
       </div>
     </div>
   );

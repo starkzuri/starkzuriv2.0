@@ -7,13 +7,27 @@ import { MarketExplore } from './components/MarketExplore';
 import { Portfolio } from './components/Portfolio';
 import { Profile } from './components/Profile';
 import { MarketDetail } from './components/MarketDetail';
+import { Rewards } from './components/Rewards';
+import { LoginModal } from './components/LoginModal';
 import { mockPredictions } from './data/mockData';
+import { toast } from 'sonner@2.0.3';
 
-type Screen = 'home' | 'market' | 'create' | 'portfolio' | 'profile' | 'market-detail';
+type Screen = 'home' | 'market' | 'create' | 'portfolio' | 'profile' | 'rewards' | 'market-detail';
 
 export default function App() {
   const [activeScreen, setActiveScreen] = useState<Screen>('home');
   const [selectedMarketId, setSelectedMarketId] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  const handleLogin = () => {
+    setIsLoggedIn(true);
+    toast.success('Wallet connected successfully!');
+  };
+
+  const handleOpenLogin = () => {
+    setShowLoginModal(true);
+  };
 
   const handleViewMarket = (id: string) => {
     setSelectedMarketId(id);
@@ -33,6 +47,8 @@ export default function App() {
         return <MarketExplore onViewMarket={handleViewMarket} />;
       case 'create':
         return <CreatePrediction />;
+      case 'rewards':
+        return <Rewards />;
       case 'portfolio':
         return <Portfolio />;
       case 'profile':
@@ -53,7 +69,12 @@ export default function App() {
     <div className="min-h-screen bg-[#0a0a0f] text-foreground">
       <div className="flex">
         {/* Desktop Sidebar */}
-        <Sidebar activeScreen={activeScreen} onNavigate={(screen) => setActiveScreen(screen as Screen)} />
+        <Sidebar 
+          activeScreen={activeScreen} 
+          onNavigate={(screen) => setActiveScreen(screen as Screen)}
+          isLoggedIn={isLoggedIn}
+          onLogin={handleOpenLogin}
+        />
 
         {/* Main Content */}
         <main className="flex-1 min-h-screen pb-20 lg:pb-0">
@@ -64,7 +85,19 @@ export default function App() {
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <BottomNav activeScreen={activeScreen} onNavigate={(screen) => setActiveScreen(screen as Screen)} />
+      <BottomNav 
+        activeScreen={activeScreen} 
+        onNavigate={(screen) => setActiveScreen(screen as Screen)}
+        isLoggedIn={isLoggedIn}
+        onLogin={handleOpenLogin}
+      />
+
+      {/* Login Modal */}
+      <LoginModal 
+        isOpen={showLoginModal} 
+        onClose={() => setShowLoginModal(false)}
+        onLogin={handleLogin}
+      />
     </div>
   );
 }

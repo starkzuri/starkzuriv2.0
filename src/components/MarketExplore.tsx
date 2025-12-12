@@ -1,92 +1,211 @@
 import { useState } from 'react';
-import { TrendingUp, TrendingDown, Sparkles } from 'lucide-react';
+import { TrendingUp, TrendingDown, Sparkles, Search, X } from 'lucide-react';
 import { mockPredictions } from '../data/mockData';
 import { PredictionCard } from './PredictionCard';
 
-type MarketView = 'trending' | 'rising-yes' | 'rising-no' | 'new';
+type MarketView = 'all' | 'trending' | 'rising-yes' | 'rising-no' | 'new';
 
 interface MarketExploreProps {
   onViewMarket: (id: string) => void;
 }
 
 export function MarketExplore({ onViewMarket }: MarketExploreProps) {
-  const [activeView, setActiveView] = useState<MarketView>('trending');
-  const [predictions] = useState(mockPredictions);
+  const [activeView, setActiveView] = useState<MarketView>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+
+  const categories = ['all', 'Crypto', 'Tech', 'Sports', 'Space', 'Politics'];
 
   const filteredPredictions = () => {
+    let filtered = [...mockPredictions];
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(p => 
+        p.question.toLowerCase().includes(query) ||
+        p.creator.name.toLowerCase().includes(query) ||
+        p.creator.username.toLowerCase().includes(query) ||
+        p.category.toLowerCase().includes(query)
+      );
+    }
+
+    // Apply category filter
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter(p => p.category === selectedCategory);
+    }
+
+    // Apply view filter
     switch (activeView) {
       case 'trending':
-        return [...predictions].sort((a, b) => b.totalVolume - a.totalVolume);
+        return filtered.sort((a, b) => b.totalVolume - a.totalVolume);
       case 'rising-yes':
-        return [...predictions].sort((a, b) => b.yesPrice - a.yesPrice);
+        return filtered.sort((a, b) => b.yesPrice - a.yesPrice);
       case 'rising-no':
-        return [...predictions].sort((a, b) => b.noPrice - a.noPrice);
+        return filtered.sort((a, b) => b.noPrice - a.noPrice);
       case 'new':
-        return [...predictions].sort((a, b) => 
+        return filtered.sort((a, b) => 
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
       default:
-        return predictions;
+        return filtered;
     }
   };
 
-  const tabs = [
-    { id: 'trending' as MarketView, label: 'Trending', icon: Sparkles },
-    { id: 'rising-yes' as MarketView, label: 'Rising YES', icon: TrendingUp },
-    { id: 'rising-no' as MarketView, label: 'Rising NO', icon: TrendingDown },
-    { id: 'new' as MarketView, label: 'New', icon: Sparkles },
-  ];
+  const clearSearch = () => {
+    setSearchQuery('');
+  };
 
   return (
-    <div className="w-full max-w-2xl mx-auto px-4 py-6">
-      <div className="mb-6">
-        <h1 className="text-foreground mb-2">Explore Markets</h1>
-        <p className="text-sm text-muted-foreground">Discover trending predictions and opportunities</p>
+    <div className="w-full max-w-4xl mx-auto px-4 py-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <TrendingUp className="w-6 h-6 md:w-8 md:h-8 text-[#1F87FC]" />
+        <div>
+          <h1 className="text-foreground text-xl md:text-2xl">Explore Markets</h1>
+          <p className="text-xs md:text-sm text-muted-foreground">Discover and trade predictions</p>
+        </div>
       </div>
 
-      {/* Market Tabs */}
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-        {tabs.map(tab => (
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search predictions, creators..."
+          className="w-full bg-[#0f0f1a] border border-[#1F87FC]/30 rounded-lg md:rounded-xl pl-10 md:pl-12 pr-10 md:pr-12 py-3 md:py-4 text-sm md:text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[#1F87FC] focus:ring-1 focus:ring-[#1F87FC] transition-all"
+        />
+        {searchQuery && (
           <button
-            key={tab.id}
-            onClick={() => setActiveView(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg border whitespace-nowrap transition-all ${
-              activeView === tab.id
-                ? 'bg-[#1F87FC]/20 border-[#1F87FC] text-[#1F87FC]'
-                : 'border-border text-muted-foreground hover:border-[#1F87FC]/40'
+            onClick={clearSearch}
+            className="absolute right-3 md:right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-[#1F87FC] transition-colors"
+          >
+            <X className="w-4 h-4 md:w-5 md:h-5" />
+          </button>
+        )}
+      </div>
+
+      {/* Category Filter */}
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
+        {categories.map(category => (
+          <button
+            key={category}
+            onClick={() => setSelectedCategory(category)}
+            className={`px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-xs md:text-sm whitespace-nowrap transition-all flex-shrink-0 ${
+              selectedCategory === category
+                ? 'bg-[#1F87FC] text-white shadow-[0_0_15px_rgba(31,135,252,0.5)]'
+                : 'bg-[#0f0f1a] border border-[#1F87FC]/30 text-muted-foreground hover:border-[#1F87FC]/60 hover:text-foreground'
             }`}
           >
-            <tab.icon className="w-4 h-4" />
-            <span>{tab.label}</span>
+            {category === 'all' ? 'All' : category}
           </button>
         ))}
       </div>
 
-      {/* Market Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-[#0f0f1a] border border-[#1F87FC]/30 rounded-lg p-4">
-          <div className="text-xs text-muted-foreground mb-1">Total Volume</div>
-          <div className="text-xl text-[#1F87FC]">$2.4M</div>
-        </div>
-        <div className="bg-[#0f0f1a] border border-[#1F87FC]/30 rounded-lg p-4">
-          <div className="text-xs text-muted-foreground mb-1">Active Markets</div>
-          <div className="text-xl text-[#1F87FC]">1,248</div>
-        </div>
-        <div className="bg-[#0f0f1a] border border-[#1F87FC]/30 rounded-lg p-4">
-          <div className="text-xs text-muted-foreground mb-1">Traders</div>
-          <div className="text-xl text-[#1F87FC]">45.2K</div>
-        </div>
+      {/* View Filters */}
+      <div className="grid grid-cols-3 md:grid-cols-5 gap-2 md:gap-3">
+        <button
+          onClick={() => setActiveView('all')}
+          className={`flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-2 md:px-4 py-2 md:py-3 rounded-lg transition-all ${
+            activeView === 'all'
+              ? 'bg-[#1F87FC]/20 border-2 border-[#1F87FC] text-[#1F87FC]'
+              : 'bg-[#0f0f1a] border border-border text-muted-foreground hover:border-[#1F87FC]/40'
+          }`}
+        >
+          <Sparkles className="w-4 h-4" />
+          <span className="text-xs md:text-sm">All</span>
+        </button>
+
+        <button
+          onClick={() => setActiveView('trending')}
+          className={`flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-2 md:px-4 py-2 md:py-3 rounded-lg transition-all ${
+            activeView === 'trending'
+              ? 'bg-[#1F87FC]/20 border-2 border-[#1F87FC] text-[#1F87FC]'
+              : 'bg-[#0f0f1a] border border-border text-muted-foreground hover:border-[#1F87FC]/40'
+          }`}
+        >
+          <TrendingUp className="w-4 h-4" />
+          <span className="text-xs md:text-sm">Hot</span>
+        </button>
+
+        <button
+          onClick={() => setActiveView('rising-yes')}
+          className={`flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-2 md:px-4 py-2 md:py-3 rounded-lg transition-all ${
+            activeView === 'rising-yes'
+              ? 'bg-[#00ff88]/20 border-2 border-[#00ff88] text-[#00ff88]'
+              : 'bg-[#0f0f1a] border border-border text-muted-foreground hover:border-[#00ff88]/40'
+          }`}
+        >
+          <TrendingUp className="w-4 h-4" />
+          <span className="text-xs md:text-sm">YES</span>
+        </button>
+
+        <button
+          onClick={() => setActiveView('rising-no')}
+          className={`flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-2 md:px-4 py-2 md:py-3 rounded-lg transition-all ${
+            activeView === 'rising-no'
+              ? 'bg-[#ff3366]/20 border-2 border-[#ff3366] text-[#ff3366]'
+              : 'bg-[#0f0f1a] border border-border text-muted-foreground hover:border-[#ff3366]/40'
+          }`}
+        >
+          <TrendingDown className="w-4 h-4" />
+          <span className="text-xs md:text-sm">NO</span>
+        </button>
+
+        <button
+          onClick={() => setActiveView('new')}
+          className={`flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 px-2 md:px-4 py-2 md:py-3 rounded-lg transition-all ${
+            activeView === 'new'
+              ? 'bg-[#1F87FC]/20 border-2 border-[#1F87FC] text-[#1F87FC]'
+              : 'bg-[#0f0f1a] border border-border text-muted-foreground hover:border-[#1F87FC]/40'
+          }`}
+        >
+          <Sparkles className="w-4 h-4" />
+          <span className="text-xs md:text-sm">New</span>
+        </button>
       </div>
 
+      {/* Results Count */}
+      {(searchQuery || selectedCategory !== 'all') && (
+        <div className="flex items-center justify-between text-xs md:text-sm">
+          <span className="text-muted-foreground">
+            {filteredPredictions().length} {filteredPredictions().length === 1 ? 'result' : 'results'}
+          </span>
+          {(searchQuery || selectedCategory !== 'all') && (
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedCategory('all');
+              }}
+              className="text-[#1F87FC] hover:text-[#1F87FC]/80 transition-colors"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Predictions Feed */}
-      <div className="space-y-6">
-        {filteredPredictions().map(prediction => (
-          <PredictionCard 
-            key={prediction.id} 
-            prediction={prediction}
-            onClick={onViewMarket}
-          />
-        ))}
+      <div className="space-y-4 md:space-y-6">
+        {filteredPredictions().length === 0 ? (
+          <div className="bg-[#0f0f1a] border border-[#1F87FC]/30 rounded-xl p-8 md:p-12 text-center">
+            <Search className="w-10 h-10 md:w-12 md:h-12 text-muted-foreground mx-auto mb-3 md:mb-4" />
+            <h3 className="text-foreground mb-2 text-sm md:text-base">No predictions found</h3>
+            <p className="text-xs md:text-sm text-muted-foreground">
+              Try adjusting your search or filters
+            </p>
+          </div>
+        ) : (
+          filteredPredictions().map(prediction => (
+            <PredictionCard 
+              key={prediction.id} 
+              prediction={prediction}
+              onClick={onViewMarket}
+            />
+          ))
+        )}
       </div>
     </div>
   );
