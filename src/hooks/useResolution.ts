@@ -114,5 +114,30 @@ export const useResolution = () => {
     [account]
   );
 
-  return { proposeOutcome, challengeOutcome, finalizeMarket };
+  const claimWinnings = useCallback(
+    async (marketId: string) => {
+      if (!account) return toast.error("connect wallet");
+      try {
+        toast.loading("claiming winnings");
+
+        const calls = [
+          {
+            contractAddress: HUB_ADDRESS,
+            entrypoint: "claim_winnings",
+            calldata: CallData.compile({ market_id: marketId }),
+          },
+        ];
+
+        // const { transaction_hash } = await account.execute(calls);
+        const { transaction_hash } = await account.execute(calls);
+        toast.success("winnings claimed");
+      } catch (e) {
+        console.error(e);
+        toast.error("Claim failed: " + e.message);
+      }
+    },
+    [account]
+  );
+
+  return { proposeOutcome, challengeOutcome, finalizeMarket, claimWinnings };
 };

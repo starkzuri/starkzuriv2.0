@@ -9,6 +9,11 @@ interface ResolutionPanelProps {
   status: number; // 1=Active, 2=Proposed, 3=Resolved, 4=Disputed
   outcome?: boolean;
   proposalTimestamp?: number;
+
+  myShares?: {
+    yes: number;
+    no: number;
+  };
 }
 
 export function ResolutionPanel({
@@ -17,30 +22,81 @@ export function ResolutionPanel({
   status,
   outcome,
   proposalTimestamp,
+  myShares = { yes: 0, no: 0 },
 }: ResolutionPanelProps) {
   const { address } = useWallet();
-  const { proposeOutcome, challengeOutcome, finalizeMarket } = useResolution();
+  const { proposeOutcome, challengeOutcome, finalizeMarket, claimWinnings } =
+    useResolution();
 
   const [selectedOutcome, setSelectedOutcome] = useState<boolean>(true);
 
   // --- RENDER STATES ---
 
   // 1. RESOLVED
+  // 1. RESOLVED (Status 3)
   if (status === 3) {
+    // 🧠 LOGIC: Did the user pick the winner?
+    // If outcome is TRUE (YES), check YES shares.
+    // If outcome is FALSE (NO), check NO shares.
+    const winningShares = outcome ? myShares.yes : myShares.no;
+    const isWinner = winningShares > 0;
+
+    // Did they bet at all?
+    const hasParticipated = myShares.yes > 0 || myShares.no > 0;
+
     return (
-      <div className="bg-[#00ff88]/10 border border-[#00ff88]/40 p-6 rounded-xl text-center">
-        <CheckCircle className="w-12 h-12 text-[#00ff88] mx-auto mb-2" />
-        <h3 className="text-xl font-bold text-[#00ff88]">Market Resolved</h3>
-        <p className="text-gray-400 mt-1">
-          Winning Outcome:{" "}
-          <span className="text-white font-bold text-lg">
-            {outcome ? "YES" : "NO"}
-          </span>
-        </p>
+      <div className="bg-[#00ff88]/10 border border-[#00ff88]/40 p-6 rounded-xl text-center space-y-4">
+        {/* Header */}
+        <div>
+          <CheckCircle className="w-12 h-12 text-[#00ff88] mx-auto mb-2" />
+          <h3 className="text-xl font-bold text-[#00ff88]">Market Resolved</h3>
+          <p className="text-gray-400">
+            Winning Outcome:{" "}
+            <span className="text-white font-bold text-lg">
+              {outcome ? "YES" : "NO"}
+            </span>
+          </p>
+        </div>
+
+        {/* 🟢 INTELLIGENT CLAIM SECTION */}
+        <div className="pt-4 border-t border-[#00ff88]/20">
+          {/* CASE A: WINNER */}
+          {isWinner && (
+            <>
+              <p className="text-sm text-[#00ff88] mb-3">
+                🎉 Congratulations! You hold <b>{winningShares.toFixed(2)}</b>{" "}
+                winning shares.
+              </p>
+              <button
+                onClick={() => claimWinnings(marketId)}
+                className="w-full bg-[#00ff88] text-black font-bold py-3 rounded-lg hover:bg-[#00ff88]/90 transition shadow-[0_0_20px_rgba(0,255,136,0.2)]"
+              >
+                💰 Claim Winnings
+              </button>
+            </>
+          )}
+
+          {/* CASE B: LOSER (Participated but lost) */}
+          {!isWinner && hasParticipated && (
+            <div className="bg-black/20 p-3 rounded-lg border border-red-500/20">
+              <p className="text-gray-400 text-sm">
+                🥀 You bet on the wrong side. Better luck next time.
+              </p>
+            </div>
+          )}
+
+          {/* CASE C: SPECTATOR (Did not bet) */}
+          {!hasParticipated && (
+            <div className="bg-black/20 p-3 rounded-lg">
+              <p className="text-gray-500 text-sm">
+                You did not participate in this market.
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
-
   // 2. DISPUTED
   if (status === 4) {
     return (
