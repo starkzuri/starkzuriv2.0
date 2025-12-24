@@ -1,31 +1,28 @@
 // import { useState, useRef } from "react";
 // import {
 //   Upload,
-//   Image,
-//   Video,
-//   Music,
 //   Calendar,
 //   Tag,
 //   Loader2,
 //   X,
 //   LogIn,
+//   Image as ImageIcon,
 // } from "lucide-react";
 // import { useWallet } from "../context/WalletContext";
 // import { toast } from "sonner";
+// // ✅ FIXED: Imported ETransactionVersion
 // import {
 //   CallData,
-//   shortString,
-//   byteArray,
-//   Contract,
 //   RpcProvider,
 //   Account,
+//   byteArray,
+//   ETransactionVersion,
 // } from "starknet";
 
 // export function CreatePrediction() {
-//   const { account, connectWallet } = useWallet();
+//   const { account, address, connectWallet } = useWallet();
 //   const fileInputRef = useRef<HTMLInputElement>(null);
 
-//   // Form State
 //   const [question, setQuestion] = useState("");
 //   const [category, setCategory] = useState("");
 //   const [mediaType, setMediaType] = useState<"image" | "video" | "audio">(
@@ -45,7 +42,6 @@
 //     "Space",
 //   ];
 
-//   // Image Handlers (UI Only for now)
 //   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
 //     const file = e.target.files?.[0];
 //     if (file) {
@@ -61,10 +57,10 @@
 //     if (fileInputRef.current) fileInputRef.current.value = "";
 //   };
 
-//   // --- THE REAL BLOCKCHAIN LOGIC ---
 //   const handleSubmit = async (e: React.FormEvent) => {
+//     console.log("account ", account, " address", address);
 //     e.preventDefault();
-//     if (!account) return;
+//     if (!account || !address) return;
 
 //     if (!question) return toast.error("Please enter a question");
 //     if (!category) return toast.error("Please select a category");
@@ -73,68 +69,41 @@
 //     setIsSubmitting(true);
 
 //     try {
-//       // Data Prep
+//       console.log("🚀 Initializing Reliable V3 Connection...");
+
+//       // 1. SETUP ALCHEMY PROVIDER
+//       const alchemyProvider = new RpcProvider({
+//         nodeUrl:
+//           "https://starknet-sepolia.g.alchemy.com/v2/EzO62qQ-wC9-OQyeOyL1y",
+//       });
+
+//       // 2. THE FIX: SWAP THE PROVIDER (Monkey Patch) 🩹
+//       // Instead of making a 'new Account' (which requires a private key we don't have),
+//       // we tell the EXISTING account object to use our Alchemy provider.
+//       // This bypasses the "429 Too Many Requests" error.
+//       (account as any).provider = alchemyProvider;
+
+//       // 3. DATA PREP
 //       const deadlineTimestamp = Math.floor(new Date(endDate).getTime() / 1000);
 //       const ipfsHash = "ipfs://QmPlaceholderHashForDemo";
 
-//       console.log("🚀 Preparing Transaction...");
+//       const questionByteArray = byteArray.byteArrayFromString(question);
+//       const mediaByteArray = byteArray.byteArrayFromString(ipfsHash);
 
-//       // --- THE FIX: FORCE TYPES ---
-//       // fn create_market(question_uri: ByteArray, media_uri: ByteArray, deadline: u64, category: felt252)
+//       console.log("🚀 Sending Transaction...");
 
-//       const myCallData = CallData.compile([
-//         // Param 1: question_uri (ByteArray)
-//         // We use byteArrayFromString to force it into the Struct format the contract needs
-//         byteArray.byteArrayFromString(question),
+//       // 4. EXECUTE (Using the existing account, but now routed through Alchemy)
+//       const tx = await account.execute({
+//         contractAddress: import.meta.env.VITE_HUB_ADDRESS,
+//         entrypoint: "create_market",
+//         calldata: CallData.compile([
+//           questionByteArray,
+//           mediaByteArray,
+//           deadlineTimestamp,
+//           category,
+//         ]),
+//       });
 
-//         // Param 2: media_uri (ByteArray)
-//         byteArray.byteArrayFromString(ipfsHash),
-
-//         // Param 3: deadline (u64)
-//         deadlineTimestamp,
-
-//         // Param 4: category (felt252)
-//         // We force this to be a ShortString (Number) because it's a 'felt252'
-//         shortString.encodeShortString(category),
-//       ]);
-
-//       // const tx = await account.execute(
-//       //   {
-//       //     contractAddress: import.meta.env.VITE_HUB_ADDRESS,
-//       //     entrypoint: "create_market",
-//       //     calldata: myCallData,
-//       //   },
-//       //   undefined,
-//       //   {
-//       //     version: 3,
-//       //     resourceBounds: {
-//       //       l1_gas: {
-//       //         max_amount: "0x2710",
-//       //         max_price_per_unit: "0x5af3107a4000",
-//       //       }, // Generous limits for deployment
-//       //       l2_gas: { max_amount: "0x0", max_price_per_unit: "0x0" },
-//       //     },
-//       //   } // 0.001 ETH max fee
-//       // );
-
-//       const tx = await account.execute(
-//         {
-//           contractAddress: import.meta.env.VITE_HUB_ADDRESS,
-//           entrypoint: "create_market",
-//           calldata: myCallData,
-//         },
-//         undefined, // ABI (optional if calldata is pre-compiled)
-//         {
-//           version: 3,
-//           resourceBounds: {
-//             l1_gas: {
-//               max_amount: "0x186A0", // 100k Gas (STILL NEEDED for Cartridge!)
-//               max_price_per_unit: "0x5af3107a4000",
-//             },
-//             l2_gas: { max_amount: "0x0", max_price_per_unit: "0x0" },
-//           },
-//         }
-//       );
 //       console.log("✅ Tx Hash:", tx.transaction_hash);
 
 //       toast.success("Transaction Sent!", {
@@ -149,24 +118,19 @@
 //         },
 //       });
 
+//       // Reset Form
 //       setQuestion("");
 //       setEndDate("");
 //       setImagePreview(null);
+//       if (fileInputRef.current) fileInputRef.current.value = "";
 //     } catch (err: any) {
 //       console.error("TRANSACTION FAILED:", err);
-//       const errorMessage = err.message || "Unknown error";
-//       toast.error("Failed", { description: errorMessage.slice(0, 100) });
+//       toast.error("Failed", { description: err.message });
 //     } finally {
 //       setIsSubmitting(false);
 //     }
 //   };
 
-//   // --- the real blockcihan logic 2
-//   // 1. Import Contract and other basics
-
-//   // ... inside your component ...
-
-//   // AUTH GUARD (If not connected)
 //   if (!account) {
 //     return (
 //       <div className="w-full max-w-2xl mx-auto px-4 py-6">
@@ -192,16 +156,14 @@
 //     );
 //   }
 
-//   // MAIN FORM
 //   return (
 //     <div className="w-full max-w-2xl mx-auto px-4 py-6 pb-24">
 //       <div className="bg-[#0f0f1a] border border-[#1F87FC]/30 rounded-xl p-6">
 //         <h2 className="text-foreground mb-6 text-xl font-bold">
 //           Create Prediction
 //         </h2>
-
 //         <form onSubmit={handleSubmit} className="space-y-6">
-//           {/* MEDIA UPLOAD (UI Only) */}
+//           {/* MEDIA UPLOAD */}
 //           <div className="space-y-3">
 //             <label className="text-foreground text-sm font-medium">
 //               Upload Media
@@ -269,8 +231,7 @@
 //           {/* CATEGORY */}
 //           <div className="space-y-3">
 //             <label className="text-foreground flex items-center gap-2 text-sm font-medium">
-//               <Tag className="w-4 h-4" />
-//               Category
+//               <Tag className="w-4 h-4" /> Category
 //             </label>
 //             <div className="flex flex-wrap gap-2">
 //               {categories.map((cat) => (
@@ -296,8 +257,7 @@
 //               htmlFor="endDate"
 //               className="text-foreground flex items-center gap-2 text-sm font-medium"
 //             >
-//               <Calendar className="w-4 h-4" />
-//               End Date
+//               <Calendar className="w-4 h-4" /> End Date
 //             </label>
 //             <input
 //               id="endDate"
@@ -317,11 +277,12 @@
 //           >
 //             {isSubmitting ? (
 //               <>
-//                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-//                 Confirming Transaction...
+//                 {" "}
+//                 <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Confirming
+//                 Transaction...{" "}
 //               </>
 //             ) : (
-//               "Publish Prediction (0.01 ETH)"
+//               "Publish Prediction"
 //             )}
 //           </button>
 //         </form>
@@ -330,38 +291,24 @@
 //   );
 // }
 
-import { useState, useRef } from "react";
-import {
-  Upload,
-  Calendar,
-  Tag,
-  Loader2,
-  X,
-  LogIn,
-  Image as ImageIcon,
-} from "lucide-react";
+import { useState } from "react";
+import { Calendar, Tag, Loader2, LogIn } from "lucide-react";
 import { useWallet } from "../context/WalletContext";
 import { toast } from "sonner";
-// ✅ FIXED: Imported ETransactionVersion
-import {
-  CallData,
-  RpcProvider,
-  Account,
-  byteArray,
-  ETransactionVersion,
-} from "starknet";
+import { CallData, RpcProvider, byteArray } from "starknet";
+// 🟢 Import the new component
+import { MediaUploader } from "./MediaUploader";
 
 export function CreatePrediction() {
   const { account, address, connectWallet } = useWallet();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [question, setQuestion] = useState("");
   const [category, setCategory] = useState("");
-  const [mediaType, setMediaType] = useState<"image" | "video" | "audio">(
-    "image"
-  );
   const [endDate, setEndDate] = useState("");
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  // 🟢 NEW: Stores the real IPFS hash from Pinata
+  const [mediaUrl, setMediaUrl] = useState<string>("");
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const categories = [
@@ -374,23 +321,7 @@ export function CreatePrediction() {
     "Space",
   ];
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setImagePreview(url);
-      setMediaType(file.type.startsWith("video") ? "video" : "image");
-    }
-  };
-
-  const clearImage = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setImagePreview(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
-    console.log("account ", account, " address", address);
     e.preventDefault();
     if (!account || !address) return;
 
@@ -398,41 +329,42 @@ export function CreatePrediction() {
     if (!category) return toast.error("Please select a category");
     if (!endDate) return toast.error("Please select an end date");
 
+    // 🟢 Validation: Ensure file is uploaded
+    if (!mediaUrl) return toast.error("Please upload an image or video");
+
     setIsSubmitting(true);
 
     try {
       console.log("🚀 Initializing Reliable V3 Connection...");
 
-      // 1. SETUP ALCHEMY PROVIDER
+      // 1. SETUP ALCHEMY PROVIDER (Your Fix)
       const alchemyProvider = new RpcProvider({
         nodeUrl:
           "https://starknet-sepolia.g.alchemy.com/v2/EzO62qQ-wC9-OQyeOyL1y",
       });
 
-      // 2. THE FIX: SWAP THE PROVIDER (Monkey Patch) 🩹
-      // Instead of making a 'new Account' (which requires a private key we don't have),
-      // we tell the EXISTING account object to use our Alchemy provider.
-      // This bypasses the "429 Too Many Requests" error.
+      // 2. APPLY MONKEY PATCH 🩹
       (account as any).provider = alchemyProvider;
 
       // 3. DATA PREP
       const deadlineTimestamp = Math.floor(new Date(endDate).getTime() / 1000);
-      const ipfsHash = "ipfs://QmPlaceholderHashForDemo";
 
+      // 🟢 REAL DATA: Use the IPFS Hash from Pinata
+      const mediaByteArray = byteArray.byteArrayFromString(mediaUrl);
       const questionByteArray = byteArray.byteArrayFromString(question);
-      const mediaByteArray = byteArray.byteArrayFromString(ipfsHash);
+      const categoryFelt = category; // Assuming contract takes short string or felt
 
-      console.log("🚀 Sending Transaction...");
+      console.log("🚀 Sending Transaction with Media:", mediaUrl);
 
-      // 4. EXECUTE (Using the existing account, but now routed through Alchemy)
+      // 4. EXECUTE
       const tx = await account.execute({
         contractAddress: import.meta.env.VITE_HUB_ADDRESS,
         entrypoint: "create_market",
         calldata: CallData.compile([
-          questionByteArray,
-          mediaByteArray,
-          deadlineTimestamp,
-          category,
+          questionByteArray, // question (ByteArray)
+          mediaByteArray, // media_uri (ByteArray) - 🟢 Now Real!
+          deadlineTimestamp, // deadline (u64)
+          categoryFelt, // category (felt252)
         ]),
       });
 
@@ -453,8 +385,7 @@ export function CreatePrediction() {
       // Reset Form
       setQuestion("");
       setEndDate("");
-      setImagePreview(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      setMediaUrl(""); // Clear media state
     } catch (err: any) {
       console.error("TRANSACTION FAILED:", err);
       toast.error("Failed", { description: err.message });
@@ -495,51 +426,17 @@ export function CreatePrediction() {
           Create Prediction
         </h2>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* MEDIA UPLOAD */}
+          {/* 🟢 MEDIA UPLOAD SECTION */}
           <div className="space-y-3">
             <label className="text-foreground text-sm font-medium">
               Upload Media
             </label>
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              className={`relative border-2 border-dashed ${
-                imagePreview ? "border-[#1F87FC]" : "border-[#1F87FC]/30"
-              } rounded-lg h-64 flex flex-col items-center justify-center hover:border-[#1F87FC]/60 transition-colors cursor-pointer overflow-hidden bg-[#1a1a24]/50`}
-            >
-              {imagePreview ? (
-                <>
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="w-full h-full object-cover"
-                  />
-                  <button
-                    onClick={clearImage}
-                    type="button"
-                    className="absolute top-4 right-4 p-2 bg-black/60 rounded-full text-white hover:bg-red-500 transition-colors"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Upload className="w-12 h-12 text-[#1F87FC] mb-3" />
-                  <p className="text-muted-foreground mb-1">
-                    Click to upload or drag and drop
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Image, Video, or Audio
-                  </p>
-                </>
-              )}
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleImageUpload}
-                accept="image/*,video/*,audio/*"
-                className="hidden"
-              />
+            <div className="bg-[#1a1a24]/50 rounded-xl border border-[#1F87FC]/30 p-1">
+              <MediaUploader onUploadComplete={(url) => setMediaUrl(url)} />
             </div>
+            <p className="text-xs text-muted-foreground">
+              Supports: Images (PNG, JPG) and Video (MP4, WEBM)
+            </p>
           </div>
 
           {/* QUESTION */}
@@ -604,14 +501,17 @@ export function CreatePrediction() {
           {/* SUBMIT BUTTON */}
           <button
             type="submit"
-            disabled={isSubmitting}
-            className="w-full bg-[#1F87FC] text-white py-4 rounded-lg hover:bg-[#1F87FC]/90 transition-all hover:shadow-[0_0_30px_rgba(31,135,252,0.5)] flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isSubmitting || !mediaUrl} // Disable if no media
+            className={`w-full py-4 rounded-lg flex items-center justify-center font-medium transition-all ${
+              isSubmitting || !mediaUrl
+                ? "bg-gray-800 text-gray-500 cursor-not-allowed"
+                : "bg-[#1F87FC] text-white hover:bg-[#1F87FC]/90 hover:shadow-[0_0_30px_rgba(31,135,252,0.5)]"
+            }`}
           >
             {isSubmitting ? (
               <>
-                {" "}
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Confirming
-                Transaction...{" "}
+                Transaction...
               </>
             ) : (
               "Publish Prediction"

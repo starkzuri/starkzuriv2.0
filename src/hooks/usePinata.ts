@@ -4,7 +4,7 @@ import { toast } from "sonner";
 
 // 🟢 Initialize SDK with the Key directly in the frontend
 const pinata = new PinataSDK({
-  pinataJwt: import.meta.env.VITE_PINATA_JWT,
+  pinataJwt: import.meta.env.VITE_JWT_SECRET,
   pinataGateway: import.meta.env.VITE_PINATA_GATEWAY_URL,
 });
 
