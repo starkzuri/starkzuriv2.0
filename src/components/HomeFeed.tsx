@@ -1,25 +1,9 @@
 // import { useState, useEffect } from "react";
 // import { PredictionCard } from "./PredictionCard";
 // import { Sparkles, Users } from "lucide-react";
-// // Import your type definition
 // import { Prediction } from "../types/prediction";
-
-// // 1. Define what comes from the API (Matches your Database Schema)
-// interface ApiMarket {
-//   marketId: number;
-//   creator: string;
-//   category: string;
-//   question: string;
-//   media: string | null;
-//   timestamp: number;
-//   transactionHash: string;
-//   yesPrice: number;
-//   noPrice: number;
-//   yesShares: number;
-//   noShares: number;
-//   totalVolume: number;
-//   endTime: string;
-// }
+// // 🟢 Import the Mapper (Ensure path is correct)
+// import { mapMarketToPrediction, ApiMarket } from "../lib/marketMapper";
 
 // interface HomeFeedProps {
 //   onViewMarket: (id: string) => void;
@@ -28,85 +12,19 @@
 // type FeedTab = "for-you" | "following";
 
 // export function HomeFeed({ onViewMarket }: HomeFeedProps) {
-//   // 2. Start with an empty array, NOT mockPredictions
 //   const [predictions, setPredictions] = useState<Prediction[]>([]);
 //   const [loading, setLoading] = useState(true);
 //   const [activeTab, setActiveTab] = useState<FeedTab>("for-you");
 
-//   // 3. Fetch Real Data on Component Mount
 //   useEffect(() => {
 //     const fetchMarkets = async () => {
 //       try {
-//         // ⚠️ Check your port! (Hono usually runs on 3000)
+//         // ⚠️ Ensure port is correct (8080 or 8000)
 //         const res = await fetch("http://localhost:8000/markets");
 //         const data: ApiMarket[] = await res.json();
 
-//         // 4. Transform Raw DB Data -> The Complex "Prediction" Object
-//         const formattedData: Prediction[] = data.map((market) => {
-//           // console.log("market", market.yesPrice);
-//           // Handle Media Fallbacks
-//           const mediaStr = market.media || "";
-//           const isVideo =
-//             mediaStr.endsWith(".mp4") || mediaStr.endsWith(".webm");
-
-//           let mediaUrl = mediaStr;
-//           if (mediaStr.includes("ipfs")) {
-//             mediaUrl = mediaStr.replace(
-//               "ipfs://",
-//               "https://gateway.pinata.cloud/ipfs/"
-//             );
-//           } else if (!mediaStr) {
-//             // Fallback if no image provided
-//             mediaUrl =
-//               "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&w=1000&q=80";
-//           }
-
-//           console.log("market", market);
-//           return {
-//             id: market.marketId.toString(),
-
-//             // 🟢 MAPPING: Create the nested 'creator' object
-//             creator: {
-//               name: `User ${market.creator.slice(0, 4)}`, // e.g. "User 0x4a"
-//               username: `@${market.creator.slice(
-//                 0,
-//                 6
-//               )}...${market.creator.slice(-4)}`,
-//               avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${market.creator}`,
-//             },
-
-//             question: market.question,
-//             category: market.category || "General",
-
-//             // 🟢 MAPPING: Create the nested 'media' object
-//             media: {
-//               type: isVideo ? "video" : "image",
-//               url: mediaUrl,
-//               thumbnail: isVideo
-//                 ? "https://placehold.co/600x400/000000/FFF?text=Video"
-//                 : undefined,
-//             },
-
-//             // 🟢 MAPPING: Real Market Data
-//             yesPrice: market.yesPrice ?? 0.5, // Default to 0.50 if null
-//             noPrice: market.noPrice ?? 0.5,
-//             totalVolume: market.totalVolume ?? 0,
-
-//             // 🟢 MAPPING: Fill missing UI fields with defaults
-//             yesShares: market.yesShares ?? 0, // You don't know the user's shares yet
-//             noShares: market.noShares ?? 0,
-
-//             createdAt: new Date(market.timestamp * 1000).toISOString(),
-//             // Fake an end date (e.g. 90 days from creation)
-//             endsAt: new Date(market.endTime * 1000).toISOString(),
-
-//             // 🟢 MAPPING: Interaction stats (DB doesn't store these yet)
-//             likes: 0,
-//             comments: 0,
-//             reposts: 0,
-//             isLiked: false,
-//           };
-//         });
+//         // 🟢 THE FIX: Use the shared mapper
+//         const formattedData = data.map(mapMarketToPrediction);
 
 //         setPredictions(formattedData);
 //       } catch (error) {
@@ -118,8 +36,6 @@
 
 //     fetchMarkets();
 //   }, []);
-
-//   // --- (Keep your handlers below exactly as they were) ---
 
 //   const handleLike = (id: string) => {
 //     setPredictions((prev) =>
@@ -135,10 +51,9 @@
 //     );
 //   };
 
+//   // ... (Other handlers) ...
 //   const handleComment = (id: string) => console.log("Comment:", id);
 //   const handleRepost = (id: string) => console.log("Repost:", id);
-//   const handleBuyYes = (id: string) => console.log("Buy YES:", id);
-//   const handleBuyNo = (id: string) => console.log("Buy NO:", id);
 
 //   const getFilteredPredictions = () => {
 //     if (activeTab === "following") return predictions.slice(0, 3);
@@ -156,7 +71,6 @@
 
 //   return (
 //     <div className="w-full max-w-2xl mx-auto px-4 py-6 space-y-6">
-//       {/* Header */}
 //       <div className="flex items-center gap-3 mb-6">
 //         <Sparkles className="w-8 h-8 text-[#1F87FC]" />
 //         <div>
@@ -182,7 +96,7 @@
 //             <span>For You</span>
 //           </div>
 //           {activeTab === "for-you" && (
-//             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#1F87FC] shadow-[0_0_8px_rgba(31,135,252,0.8)]" />
+//             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#1F87FC]" />
 //           )}
 //         </button>
 //         <button
@@ -198,12 +112,11 @@
 //             <span>Following</span>
 //           </div>
 //           {activeTab === "following" && (
-//             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#1F87FC] shadow-[0_0_8px_rgba(31,135,252,0.8)]" />
+//             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#1F87FC]" />
 //           )}
 //         </button>
 //       </div>
 
-//       {/* Feed */}
 //       <div className="space-y-6">
 //         {getFilteredPredictions().length === 0 ? (
 //           <div className="bg-[#0f0f1a] border border-[#1F87FC]/30 rounded-xl p-12 text-center">
@@ -221,8 +134,6 @@
 //               onLike={handleLike}
 //               onComment={handleComment}
 //               onRepost={handleRepost}
-//               onBuyYes={handleBuyYes}
-//               onBuyNo={handleBuyNo}
 //               onClick={() => onViewMarket(prediction.id)}
 //             />
 //           ))
@@ -232,12 +143,15 @@
 //   );
 // }
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { PredictionCard } from "./PredictionCard";
-import { Sparkles, Users } from "lucide-react";
+import { Sparkles, Users, Loader2 } from "lucide-react";
 import { Prediction } from "../types/prediction";
-// 🟢 Import the Mapper (Ensure path is correct)
 import { mapMarketToPrediction, ApiMarket } from "../lib/marketMapper";
+
+// 🟢 CONFIG
+const PAGE_SIZE = 5; // Load 5 at a time
+const API_URL = "http://localhost:8000";
 
 interface HomeFeedProps {
   onViewMarket: (id: string) => void;
@@ -247,30 +161,75 @@ type FeedTab = "for-you" | "following";
 
 export function HomeFeed({ onViewMarket }: HomeFeedProps) {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<FeedTab>("for-you");
 
-  useEffect(() => {
-    const fetchMarkets = async () => {
-      try {
-        // ⚠️ Ensure port is correct (8080 or 8000)
-        const res = await fetch("http://localhost:8000/markets");
-        const data: ApiMarket[] = await res.json();
+  // 🟢 Pagination State
+  const [page, setPage] = useState(0);
+  const [loading, setLoading] = useState(false); // Loading NEW items
+  const [initialLoading, setInitialLoading] = useState(true); // First load
+  const [hasMore, setHasMore] = useState(true);
 
-        // 🟢 THE FIX: Use the shared mapper
-        const formattedData = data.map(mapMarketToPrediction);
+  // 🟢 Observer Ref
+  const observer = useRef<IntersectionObserver | null>(null);
 
-        setPredictions(formattedData);
-      } catch (error) {
-        console.error("Failed to fetch markets:", error);
-      } finally {
-        setLoading(false);
+  // 🟢 Fetch Function
+  const fetchMarkets = async (pageIndex: number) => {
+    setLoading(true);
+    try {
+      const offset = pageIndex * PAGE_SIZE;
+      const res = await fetch(
+        `${API_URL}/markets?limit=${PAGE_SIZE}&offset=${offset}`
+      );
+      const data: ApiMarket[] = await res.json();
+      const formattedData = data.map(mapMarketToPrediction);
+
+      setPredictions((prev) => {
+        // ⚠️ Prevent Duplicates (React Strict Mode safety)
+        const existingIds = new Set(prev.map((p) => p.id));
+        const uniqueNew = formattedData.filter((p) => !existingIds.has(p.id));
+        return [...prev, ...uniqueNew];
+      });
+
+      // If we got fewer items than requested, we reached the end
+      if (formattedData.length < PAGE_SIZE) {
+        setHasMore(false);
       }
-    };
+    } catch (error) {
+      console.error("Failed to fetch markets:", error);
+    } finally {
+      setLoading(false);
+      setInitialLoading(false);
+    }
+  };
 
-    fetchMarkets();
+  // 🟢 Initial Load
+  useEffect(() => {
+    fetchMarkets(0);
   }, []);
 
+  // 🟢 The "Last Element" Trigger
+  const lastElementRef = useCallback(
+    (node: HTMLDivElement) => {
+      if (loading) return;
+      if (observer.current) observer.current.disconnect();
+
+      observer.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          // 🚀 Trigger next page
+          setPage((prev) => {
+            const nextPage = prev + 1;
+            fetchMarkets(nextPage); // Fetch immediately
+            return nextPage;
+          });
+        }
+      });
+
+      if (node) observer.current.observe(node);
+    },
+    [loading, hasMore]
+  );
+
+  // --- Handlers (Unchanged) ---
   const handleLike = (id: string) => {
     setPredictions((prev) =>
       prev.map((p) =>
@@ -285,16 +244,16 @@ export function HomeFeed({ onViewMarket }: HomeFeedProps) {
     );
   };
 
-  // ... (Other handlers) ...
   const handleComment = (id: string) => console.log("Comment:", id);
   const handleRepost = (id: string) => console.log("Repost:", id);
 
+  // Filter Logic
   const getFilteredPredictions = () => {
-    if (activeTab === "following") return predictions.slice(0, 3);
+    if (activeTab === "following") return predictions.slice(0, 3); // Mock for now
     return predictions;
   };
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <div className="w-full max-w-2xl mx-auto py-20 text-center">
         <Sparkles className="w-10 h-10 text-[#1F87FC] animate-spin mx-auto mb-4" />
@@ -304,7 +263,7 @@ export function HomeFeed({ onViewMarket }: HomeFeedProps) {
   }
 
   return (
-    <div className="w-full max-w-2xl mx-auto px-4 py-6 space-y-6">
+    <div className="w-full max-w-2xl mx-auto px-4 py-6 space-y-6 pb-20">
       <div className="flex items-center gap-3 mb-6">
         <Sparkles className="w-8 h-8 text-[#1F87FC]" />
         <div>
@@ -361,16 +320,47 @@ export function HomeFeed({ onViewMarket }: HomeFeedProps) {
             </p>
           </div>
         ) : (
-          getFilteredPredictions().map((prediction) => (
-            <PredictionCard
-              key={prediction.id}
-              prediction={prediction}
-              onLike={handleLike}
-              onComment={handleComment}
-              onRepost={handleRepost}
-              onClick={() => onViewMarket(prediction.id)}
-            />
-          ))
+          // 🟢 MAP THROUGH PREDICTIONS
+          getFilteredPredictions().map((prediction, index) => {
+            // If it's the LAST item, attach the Observer Ref
+            if (index === getFilteredPredictions().length - 1) {
+              return (
+                <div ref={lastElementRef} key={prediction.id}>
+                  <PredictionCard
+                    prediction={prediction}
+                    onLike={handleLike}
+                    onComment={handleComment}
+                    onRepost={handleRepost}
+                    onClick={() => onViewMarket(prediction.id)}
+                  />
+                </div>
+              );
+            }
+            return (
+              <PredictionCard
+                key={prediction.id}
+                prediction={prediction}
+                onLike={handleLike}
+                onComment={handleComment}
+                onRepost={handleRepost}
+                onClick={() => onViewMarket(prediction.id)}
+              />
+            );
+          })
+        )}
+
+        {/* 🟢 Bottom Loading Spinner */}
+        {loading && hasMore && (
+          <div className="py-4 flex justify-center">
+            <Loader2 className="w-6 h-6 animate-spin text-[#1F87FC]" />
+          </div>
+        )}
+
+        {/* 🟢 End of Feed Message */}
+        {!hasMore && predictions.length > 0 && (
+          <div className="py-8 text-center text-xs text-muted-foreground">
+            You're all caught up! 🎉
+          </div>
         )}
       </div>
     </div>
