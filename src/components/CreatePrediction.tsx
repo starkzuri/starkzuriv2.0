@@ -74,7 +74,7 @@
 //       // 1. SETUP ALCHEMY PROVIDER
 //       const alchemyProvider = new RpcProvider({
 //         nodeUrl:
-//           "https://starknet-sepolia.g.alchemy.com/v2/EzO62qQ-wC9-OQyeOyL1y",
+//           "import.meta.env.VITE_NODE_URL",
 //       });
 
 //       // 2. THE FIX: SWAP THE PROVIDER (Monkey Patch) 🩹
@@ -339,8 +339,7 @@ export function CreatePrediction() {
 
       // 1. SETUP ALCHEMY PROVIDER (Your Fix)
       const alchemyProvider = new RpcProvider({
-        nodeUrl:
-          "https://starknet-sepolia.g.alchemy.com/v2/EzO62qQ-wC9-OQyeOyL1y",
+        nodeUrl: "import.meta.env.VITE_NODE_URL",
       });
 
       // 2. APPLY MONKEY PATCH 🩹

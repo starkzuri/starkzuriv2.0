@@ -518,7 +518,7 @@ export function MarketDetail({ marketId, onBack }: MarketDetailProps) {
       </div>
 
       {/* Comments Section */}
-      <div className="bg-[#0f0f1a] border border-[#1F87FC]/30 rounded-xl p-4 md:p-6">
+      {/* <div className="bg-[#0f0f1a] border border-[#1F87FC]/30 rounded-xl p-4 md:p-6">
         <h3 className="text-foreground mb-4">Comments ({comments.length})</h3>
         <div className="mb-6">
           <textarea
@@ -557,7 +557,7 @@ export function MarketDetail({ marketId, onBack }: MarketDetailProps) {
             </div>
           ))}
         </div>
-      </div>
+      </div> */}
     </div>
   );
 }

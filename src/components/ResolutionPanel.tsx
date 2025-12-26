@@ -143,7 +143,7 @@ export function ResolutionPanel({
               <AlertTriangle className="w-4 h-4 text-yellow-500 mt-0.5 shrink-0" />
               <p>
                 Disagree with the result? You can challenge it by staking a{" "}
-                <span className="text-white">20 USDC</span> bond.
+                <span className="text-white">10 USDC</span> bond.
               </p>
             </div>
             <button

@@ -6,7 +6,7 @@
 // const PROFILE_ADDRESS = import.meta.env.VITE_PROFILE_ADDRESS;
 // // 🟢 Use the same reliable node as your Create Market logic
 // const ALCHEMY_URL =
-//   "https://starknet-sepolia.g.alchemy.com/v2/EzO62qQ-wC9-OQyeOyL1y";
+//   "import.meta.env.VITE_NODE_URL";
 
 // export const useProfile = () => {
 //   const { account } = useWallet();
@@ -101,8 +101,7 @@ import { useWallet } from "../context/WalletContext";
 
 const PROFILE_ADDRESS = import.meta.env.VITE_PROFILE_ADDRESS;
 // Use your reliable RPC
-const ALCHEMY_URL =
-  "https://starknet-sepolia.g.alchemy.com/v2/EzO62qQ-wC9-OQyeOyL1y";
+const ALCHEMY_URL = "import.meta.env.VITE_NODE_URL";
 
 export const useProfile = () => {
   const { account } = useWallet();
