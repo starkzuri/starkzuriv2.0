@@ -71,11 +71,12 @@ export function MarketDetail({ marketId, onBack }: MarketDetailProps) {
   const [commentText, setCommentText] = useState("");
   const [comments, setComments] = useState<Comment[]>([]);
 
+  const API_URL = "https://starknet-indexer-apibara.onrender.com";
   // 1. Fetch Market Data & History
   useEffect(() => {
     const fetchMarketData = async () => {
       try {
-        const res = await fetch("http://localhost:8000/markets");
+        const res = await fetch(API_URL + "/markets");
         const data: ApiMarket[] = await res.json();
         const rawMarket = data.find((m) => m.marketId.toString() === marketId);
         console.log("rawMarket felabs", rawMarket);
@@ -126,7 +127,7 @@ export function MarketDetail({ marketId, onBack }: MarketDetailProps) {
         }
 
         const historyRes = await fetch(
-          `http://localhost:8000/markets/${marketId}/history`
+          `${API_URL}/markets/${marketId}/history`
         );
         const historyData = await historyRes.json();
         const formattedHistory = historyData.map((item: any) => ({
@@ -139,7 +140,7 @@ export function MarketDetail({ marketId, onBack }: MarketDetailProps) {
 
         if (address) {
           const positionRes = await fetch(
-            `http://localhost:8000/markets/${marketId}/position/${address}`
+            `${API_URL}/markets/${marketId}/position/${address}`
           );
           const positionData = await positionRes.json();
           setMyShares({

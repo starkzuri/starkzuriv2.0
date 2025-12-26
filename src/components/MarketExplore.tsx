@@ -13,7 +13,7 @@ import { mapMarketToPrediction, ApiMarket } from "../lib/marketMapper";
 
 // 🟢 CONFIG
 const PAGE_SIZE = 6;
-const API_URL = "http://localhost:8000";
+const API_URL = import.meta.env.VITE_INDEXER_SERVER_URL;
 
 type MarketView = "all" | "trending" | "rising-yes" | "rising-no" | "new";
 

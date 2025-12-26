@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { CallData } from "starknet";
 
 // Ensure this matches your backend port
-const API_URL = "http://localhost:8000";
+const API_URL = import.meta.env.VITE_INDEXER_SERVER_URL;
 
 interface UserPosition {
   prediction: Prediction;

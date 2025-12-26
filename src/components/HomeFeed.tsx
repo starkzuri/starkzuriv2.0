@@ -151,7 +151,7 @@ import { mapMarketToPrediction, ApiMarket } from "../lib/marketMapper";
 
 // 🟢 CONFIG
 const PAGE_SIZE = 5; // Load 5 at a time
-const API_URL = "http://localhost:8000";
+const API_URL = "https://starknet-indexer-apibara.onrender.com";
 
 interface HomeFeedProps {
   onViewMarket: (id: string) => void;

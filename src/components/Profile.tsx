@@ -24,7 +24,7 @@ import { mapMarketToPrediction, ApiMarket } from "../lib/marketMapper";
 import { Prediction } from "../types/prediction";
 
 // 🟢 Ensure Port is 8000 (Backend)
-const API_URL = "http://localhost:8000";
+const API_URL = import.meta.env.VITE_INDEXER_SERVER_URL;
 
 type ProfileTab = "predictions" | "investments" | "media" | "settings";
 

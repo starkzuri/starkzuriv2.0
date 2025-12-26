@@ -323,7 +323,7 @@ import {
 } from "lucide-react";
 import { useWallet } from "../context/WalletContext";
 
-const API_URL = "http://localhost:8000";
+const API_URL = import.meta.env.VITE_INDEXER_SERVER_URL;
 
 type RewardsTab = "overview" | "achievements" | "leaderboard";
 
