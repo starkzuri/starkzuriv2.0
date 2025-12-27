@@ -24,6 +24,7 @@ import { useTrade } from "../hooks/useTrade";
 import { useWallet } from "../context/WalletContext";
 import { ResolutionPanel } from "./ResolutionPanel"; // 🟢 Correctly Imported
 import { MediaPreview } from "./MediaPreview";
+import CommentsSection from "./CommentSection";
 
 interface MarketDetailProps {
   marketId: string;
@@ -518,46 +519,10 @@ export function MarketDetail({ marketId, onBack }: MarketDetailProps) {
       </div>
 
       {/* Comments Section */}
-      {/* <div className="bg-[#0f0f1a] border border-[#1F87FC]/30 rounded-xl p-4 md:p-6">
+      <div className="bg-[#0f0f1a] border border-[#1F87FC]/30 rounded-xl p-4 md:p-6">
         <h3 className="text-foreground mb-4">Comments ({comments.length})</h3>
-        <div className="mb-6">
-          <textarea
-            value={commentText}
-            onChange={(e) => setCommentText(e.target.value)}
-            placeholder="Share your thoughts..."
-            className="w-full bg-[#1a1a24] border border-border rounded-lg px-4 py-3 text-white focus:outline-none focus:border-[#1F87FC]"
-            rows={3}
-          />
-          <button
-            onClick={handlePostComment}
-            className="mt-2 px-6 py-2 bg-[#1F87FC] text-white rounded-lg hover:bg-[#1F87FC]/90"
-          >
-            Post Comment
-          </button>
-        </div>
-        <div className="space-y-4">
-          {comments.map((comment) => (
-            <div
-              key={comment.id}
-              className="flex gap-3 p-4 bg-[#1a1a24] border border-border rounded-lg"
-            >
-              <img
-                src={comment.user.avatar}
-                className="w-10 h-10 rounded-full"
-              />
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-foreground">{comment.user.name}</span>
-                  <span className="text-muted-foreground text-xs">
-                    {formatTime(comment.timestamp)}
-                  </span>
-                </div>
-                <p className="text-foreground text-sm">{comment.text}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div> */}
+        <CommentsSection marketId={Number(prediction.id)} />
+      </div>
     </div>
   );
 }
