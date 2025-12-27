@@ -32,7 +32,11 @@ interface UserPosition {
   outcome?: boolean;
 }
 
-export function Portfolio() {
+interface PortfolioProps {
+  onViewMarket: (id: string) => void;
+}
+
+export function Portfolio({ onViewMarket }: PortfolioProps) {
   const { address, connectWallet, account } = useWallet();
   const [positions, setPositions] = useState<UserPosition[]>([]);
   const [loading, setLoading] = useState(false);
@@ -270,7 +274,10 @@ export function Portfolio() {
                       className="w-full h-full rounded-lg border border-border"
                     />
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div
+                    className="flex-1 min-w-0"
+                    onClick={() => onViewMarket(position.marketId)}
+                  >
                     <p className="text-foreground mb-1 line-clamp-2">
                       {position.prediction.question}
                     </p>

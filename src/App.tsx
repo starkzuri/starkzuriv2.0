@@ -179,7 +179,7 @@ export default function App() {
       case "rewards":
         return <Rewards />;
       case "portfolio":
-        return <Portfolio />;
+        return <Portfolio onViewMarket={handleViewMarket} />;
       case "profile":
         return <Profile />;
 
