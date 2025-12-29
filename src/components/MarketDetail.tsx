@@ -521,7 +521,7 @@ export function MarketDetail({ marketId, onBack }: MarketDetailProps) {
                     tick={{ fill: "#6b6b7f", fontSize: 12 }}
                     // This zooms the chart in to fit the data boundaries
                     domain={["auto", "auto"]}
-                    tickFormatter={(value) => `$${value.toFixed(2)}`}
+                    tickFormatter={(value) => `$${value.toFixed(4)}`}
                   />
                   <Tooltip content={<CustomTooltip />} />
                   {(activeChart === "both" || activeChart === "yes") && (
