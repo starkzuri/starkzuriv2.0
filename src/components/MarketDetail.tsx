@@ -432,7 +432,7 @@ export function MarketDetail({ marketId, onBack }: MarketDetailProps) {
 
             <div className="bg-[#1a1a24] border border-border rounded-lg p-2 md:p-4">
               <ResponsiveContainer width="100%" height={250}>
-                <AreaChart data={chartData}>
+                {/* <AreaChart data={chartData}>
                   <defs>
                     <linearGradient id="colorYes" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#00ff88" stopOpacity={0.3} />
@@ -485,6 +485,68 @@ export function MarketDetail({ marketId, onBack }: MarketDetailProps) {
                       fillOpacity={1}
                       fill="url(#colorNo)"
                       name="NO"
+                    />
+                  )}
+                </AreaChart> */}
+
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="colorYes" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#00ff88" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#00ff88" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="colorNo" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#ff3366" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#ff3366" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="rgba(31, 135, 252, 0.1)"
+                  />
+                  <XAxis
+                    dataKey="timestamp"
+                    stroke="#6b6b7f"
+                    tick={{ fill: "#6b6b7f", fontSize: 12 }}
+                    tickFormatter={(value) =>
+                      new Date(value).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    }
+                  />
+                  {/* 🟢 FIXED Y-AXIS */}
+                  <YAxis
+                    stroke="#6b6b7f"
+                    tick={{ fill: "#6b6b7f", fontSize: 12 }}
+                    // This zooms the chart in to fit the data boundaries
+                    domain={["auto", "auto"]}
+                    tickFormatter={(value) => `$${value.toFixed(2)}`}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  {(activeChart === "both" || activeChart === "yes") && (
+                    <Area
+                      type="monotone"
+                      dataKey="yesPrice"
+                      stroke="#00ff88"
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#colorYes)"
+                      name="YES"
+                      // 🟢 OPTIONAL: Add dots so you can see individual trades clearly
+                      activeDot={{ r: 6 }}
+                    />
+                  )}
+                  {(activeChart === "both" || activeChart === "no") && (
+                    <Area
+                      type="monotone"
+                      dataKey="noPrice"
+                      stroke="#ff3366"
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#colorNo)"
+                      name="NO"
+                      activeDot={{ r: 6 }}
                     />
                   )}
                 </AreaChart>
