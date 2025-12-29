@@ -839,7 +839,7 @@ export function PredictionCard({
               </div>
               <div className="flex items-end justify-between">
                 <div className="text-2xl font-bold text-[#00ff88]">
-                  ${prediction.yesPrice.toFixed(2)}
+                  ${prediction.yesPrice.toFixed(4)}
                 </div>
                 <div className="text-xs text-[#00ff88]/80 mb-1 font-mono">
                   {(prediction.yesPrice * 100).toFixed(0)}%
@@ -860,7 +860,7 @@ export function PredictionCard({
               </div>
               <div className="flex items-end justify-between">
                 <div className="text-2xl font-bold text-[#ff3366]">
-                  ${prediction.noPrice.toFixed(2)}
+                  ${prediction.noPrice.toFixed(4)}
                 </div>
                 <div className="text-xs text-[#ff3366]/80 mb-1 font-mono">
                   {(prediction.noPrice * 100).toFixed(0)}%
