@@ -10,6 +10,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { useWallet } from "../context/WalletContext";
+import Logo from "../assets/ST4.png";
 
 interface SidebarProps {
   activeScreen: string;
@@ -48,8 +49,9 @@ export function Sidebar({ activeScreen, onNavigate }: SidebarProps) {
     <div className="hidden lg:flex flex-col w-64 h-screen bg-[#0a0a0f] border-r border-[#1F87FC]/20 p-4 sticky top-0">
       {/* Logo */}
       <div className="flex items-center gap-3 mb-8 px-2">
-        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#1F87FC] to-[#00ffcc] flex items-center justify-center">
-          <Award className="w-6 h-6 text-white" />
+        <div className="w-10 h-10 rounded-lg bg-gradient-to-br  flex items-center justify-center">
+          {/* <Award className="w-6 h-6 text-white" /> */}
+          <img src={Logo} />
         </div>
         <div>
           <h2 className="text-foreground font-bold">StarkZuri</h2>
