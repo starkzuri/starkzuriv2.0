@@ -17,7 +17,7 @@ export const useResolution = () => {
         toast.loading("Proposing outcome...");
 
         // Hardcoded 10 USDC Bond (Adjust if your config changes)
-        const bondAmount = uint256.bnToUint256(10_000_000n);
+        const bondAmount = uint256.bnToUint256(1_000_000n);
 
         const calls = [
           // 1. Approve Bond
@@ -59,7 +59,7 @@ export const useResolution = () => {
         toast.loading("Submitting challenge...");
 
         // Hardcoded 20 USDC Bond
-        const bondAmount = uint256.bnToUint256(20_000_000n);
+        const bondAmount = uint256.bnToUint256(1_000_000n);
 
         const calls = [
           {
