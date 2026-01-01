@@ -51,6 +51,20 @@ interface ApiMarket {
   proposalTimestamp?: number;
 }
 
+const formatAddress = (addr: string) => {
+  if (!addr) return "";
+  // 1. Force lowercase
+  let hex = addr.toLowerCase();
+  // 2. Ensure it starts with 0x
+  if (!hex.startsWith("0x")) hex = "0x" + hex;
+  // 3. Pad with zeros until it is 66 chars long (Standard Starknet format)
+  //    (0x + 64 chars)
+  while (hex.length < 66) {
+    hex = "0x0" + hex.substring(2);
+  }
+  return hex;
+};
+
 export function MarketDetail({ marketId, onBack }: MarketDetailProps) {
   const { address } = useWallet();
   const [prediction, setPrediction] = useState<Prediction | null>(null);
@@ -73,6 +87,7 @@ export function MarketDetail({ marketId, onBack }: MarketDetailProps) {
   const [comments, setComments] = useState<Comment[]>([]);
 
   const API_URL = "https://starknet-indexer-apibara.onrender.com";
+  console.log("my shares ", myShares);
   // 1. Fetch Market Data & History
   useEffect(() => {
     const fetchMarketData = async () => {
@@ -140,14 +155,31 @@ export function MarketDetail({ marketId, onBack }: MarketDetailProps) {
         setChartData(formattedHistory);
 
         if (address) {
-          const positionRes = await fetch(
-            `${API_URL}/markets/${marketId}/position/${address}`
-          );
-          const positionData = await positionRes.json();
-          setMyShares({
-            yes: positionData.yesShares || 0,
-            no: positionData.noShares || 0,
-          });
+          try {
+            // 🟢 1. Use the helper to pad the address (0x04...)
+            const dbAddress = formatAddress(address);
+            const url = `${API_URL}/markets/${marketId}/position/${dbAddress}`;
+
+            // 🟢 2. Fetch
+            const positionRes = await fetch(url);
+
+            if (positionRes.ok) {
+              const data = await positionRes.json();
+              console.log("✅ Position Loaded:", data);
+
+              // 🟢 3. Update State (This triggers the UI to show you participated!)
+              setMyShares({
+                yes: Number(data.yesShares || data.yes_shares || 0),
+                no: Number(data.noShares || data.no_shares || 0),
+              });
+            } else {
+              // If 404, it just means no position exists yet
+              console.log("No position found for this market.");
+              setMyShares({ yes: 0, no: 0 });
+            }
+          } catch (e) {
+            console.error("Failed to load position:", e);
+          }
         }
       } catch (e) {
         console.error("Error fetching detail:", e);
@@ -387,6 +419,7 @@ export function MarketDetail({ marketId, onBack }: MarketDetailProps) {
               status={apiData?.status || 1}
               outcome={apiData?.outcome}
               proposalTimestamp={apiData?.proposalTimestamp}
+              myShares={myShares || { yes: 0, no: 0 }}
             />
           )}
 

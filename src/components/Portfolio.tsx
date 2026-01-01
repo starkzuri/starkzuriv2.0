@@ -129,6 +129,7 @@ export function Portfolio({ onViewMarket }: PortfolioProps) {
 
   // 3. Helper for Status (Won/Lost/Active)
   const getPositionStatus = (pos: UserPosition) => {
+    console.log("position ", pos);
     if (pos.status === 1) return { type: "active", label: "Active" };
 
     // Check if User Won

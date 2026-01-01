@@ -9,6 +9,7 @@ import { ControllerConnector } from "@cartridge/connector";
 const connectors = [
   new InjectedConnector({ options: { id: "braavos", name: "Braavos" } }),
   new InjectedConnector({ options: { id: "argentX", name: "Argent X" } }),
+
   // new WebWalletConnector({ url: "https://web.argent.xyz" }), // Uncomment for Mainnet
 ];
 

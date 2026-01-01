@@ -111,7 +111,7 @@ export function ResolutionPanel({
   // 3. PROPOSED (Review Period)
   if (status === 2) {
     const now = Math.floor(Date.now() / 1000);
-    const disputeEnd = (proposalTimestamp || 0) + 86400; // 24h window
+    const disputeEnd = (proposalTimestamp || 0) + 1800; // 5min window
     const isFinalizable = now > disputeEnd;
 
     return (
