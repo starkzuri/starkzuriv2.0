@@ -80,7 +80,7 @@ export function ResolutionPanel({
           {!isWinner && hasParticipated && (
             <div className="bg-black/20 p-3 rounded-lg border border-red-500/20">
               <p className="text-gray-400 text-sm">
-                🥀 You bet on the wrong side. Better luck next time.
+                🥀 You predicted on the wrong side. Better luck next time.
               </p>
             </div>
           )}
