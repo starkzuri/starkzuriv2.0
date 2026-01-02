@@ -183,6 +183,7 @@ import { WebWalletConnector } from "starknetkit/webwallet";
 import { AccountInterface, constants } from "starknet";
 import { ControllerConnector } from "@cartridge/connector";
 
+const SEPOLIA_CHAIN_ID = "0x534e5f5345504f4c4941";
 // 1. DEFINE CONNECTORS
 const connectors = [
   // Standard Wallets (Argent X / Braavos)
@@ -193,34 +194,36 @@ const connectors = [
   // new WebWalletConnector({ url: "https://web.argent.xyz" }),
 
   // 👇 THE FIX: CARTRIDGE CONTROLLER FOR SEPOLIA
+
   new ControllerConnector({
-    // 1. Force the RPC (This fixes the "refused to connect" issue)
-    rpc: "https://api.cartridge.gg/x/starknet/sepolia",
-
-    // 2. Explicitly define the chain configuration
-    chains: [
-      {
-        rpcUrl: "https://api.cartridge.gg/x/starknet/sepolia",
-        id: constants.NetworkName.SN_SEPOLIA, // Forces Sepolia ID
-      },
-    ],
-
-    // 3. Define the "Session Key" Policies
-    // These methods will be "auto-approved" after the first login
+    // 1. Policies are now mandatory for the "Session" to work right
     policies: [
       {
-        target: import.meta.env.VITE_HUB_ADDRESS, // Your Smart Contract Address
+        target: import.meta.env.VITE_HUB_ADDRESS, // Must match 0x05d6... exactly
         method: "create_market",
         description: "Create a new prediction market",
       },
-      // Add other methods here later to improve UX:
-      // { target: ..., method: "predict_yes", description: "Bet YES" },
     ],
 
-    // 4. "The Necromancer" Config - Paymaster (Optional but recommended later)
-    // paymaster: {
-    //   caller: shortString.encodeShortString("starkzuri_paymaster")
-    // }
+    // 2. Define the Chain (Only Sepolia)
+    chains: [
+      {
+        rpcUrl: "https://api.cartridge.gg/x/starknet/sepolia", // Official Cartridge RPC is best for Controller
+        // OR use your Alchemy: "https://starknet-sepolia.g.alchemy.com/v2/YOUR_KEY"
+        id: SEPOLIA_CHAIN_ID,
+      },
+    ],
+
+    // 3. Force the Default Chain (The "Lock")
+    defaultChainId: SEPOLIA_CHAIN_ID,
+
+    // 4. Namespace (Optional but good for isolation)
+    // This creates a unique storage key in the browser so it doesn't clash with other apps
+    namespace: "starkzuri",
+
+    // 5. Slot (Optional)
+    // Since you aren't using a Dojo World, you can omit 'slot' or set it to a generic string
+    // slot: "starkzuri-v1",
   }) as any,
 ];
 
