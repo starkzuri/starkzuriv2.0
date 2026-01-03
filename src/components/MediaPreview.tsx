@@ -27,16 +27,35 @@ export function MediaPreview({
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // 1. URL Resolver
+  // temporarily disabled until the month ends
+  // const resolveUrl = (url?: string) => {
+  //   if (!url) return "";
+  //   if (url.startsWith("ipfs://")) {
+  //     return url.replace(
+  //       "ipfs://",
+  //       import.meta.env.VITE_PINATA_GATEWAY_URL ||
+  //         "https://gateway.pinata.cloud/ipfs/"
+  //     );
+  //   }
+  //   return url;
+  // };
+
   const resolveUrl = (url?: string) => {
     if (!url) return "";
+
+    // 1. Extract the CID (hash) regardless of the prefix
+    let cid = "";
     if (url.startsWith("ipfs://")) {
-      return url.replace(
-        "ipfs://",
-        import.meta.env.VITE_PINATA_GATEWAY_URL ||
-          "https://gateway.pinata.cloud/ipfs/"
-      );
+      cid = url.replace("ipfs://", "");
+    } else if (url.includes("/ipfs/")) {
+      cid = url.split("/ipfs/")[1];
+    } else {
+      return url; // It's a normal image (unsplash, etc.)
     }
-    return url;
+
+    // 2. 🟢 Return a reliable Public Gateway URL
+    // Try this specific one:
+    return `https://dweb.link/ipfs/${cid}`;
   };
   const url = resolveUrl(src);
 
