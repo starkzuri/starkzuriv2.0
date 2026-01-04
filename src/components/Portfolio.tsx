@@ -7,7 +7,7 @@ import {
   Loader2,
   Wallet,
   Trophy,
-  AlertCircle,
+  CheckCircle, // 🟢 Added Icon
 } from "lucide-react";
 import { useWallet } from "../context/WalletContext";
 import { MediaPreview } from "./MediaPreview";
@@ -16,7 +16,6 @@ import { Prediction } from "../types/prediction";
 import { toast } from "sonner";
 import { CallData } from "starknet";
 
-// Ensure this matches your backend port
 const API_URL = import.meta.env.VITE_INDEXER_SERVER_URL;
 
 interface UserPosition {
@@ -27,9 +26,9 @@ interface UserPosition {
   invested: number;
   currentValue: number;
   profitLoss: number;
-  // Resolution status
   status: number;
   outcome?: boolean;
+  hasClaimed: boolean; // 🟢 Added this flag
 }
 
 interface PortfolioProps {
@@ -66,21 +65,33 @@ export function Portfolio({ onViewMarket }: PortfolioProps) {
 
             if (yesShares <= 0 && noShares <= 0) return null;
 
-            // Math
+            // 🟢 FIX 1: Use REAL Invested Amount (with fallback just in case)
+            // Checks both snake_case (raw DB) and camelCase (ORM)
+            const realInvested = Number(
+              bet.totalInvested || bet.total_invested || 0
+            );
+
+            // Fallback for very old legacy data (before re-index)
+            const costBasis =
+              realInvested > 0 ? realInvested : (yesShares + noShares) * 0.5;
+
+            // 🟢 FIX 2: Capture Claim Status
+            const claimed = Boolean(bet.hasClaimed || bet.has_claimed || false);
+
             const currentValue =
               yesShares * market.yesPrice + noShares * market.noPrice;
-            const estimatedCost = (yesShares + noShares) * 0.5; // MVP Estimate
 
             return {
               prediction: formattedPrediction,
               marketId: market.marketId.toString(),
               yesShares,
               noShares,
-              invested: estimatedCost,
+              invested: costBasis,
               currentValue: currentValue,
-              profitLoss: currentValue - estimatedCost,
+              profitLoss: currentValue - costBasis,
               status: market.status || 1,
               outcome: market.outcome,
+              hasClaimed: claimed, // 🟢 Store it
             };
           })
           .filter(Boolean);
@@ -110,16 +121,15 @@ export function Portfolio({ onViewMarket }: PortfolioProps) {
       });
 
       toast.success("Winnings Claimed!", {
-        description: "Transaction submitted to Starknet.",
-        action: {
-          label: "View Explorer",
-          onClick: () =>
-            window.open(
-              `https://sepolia.voyager.online/tx/${tx.transaction_hash}`,
-              "_blank"
-            ),
-        },
+        description: "Transaction submitted. Your balance will update shortly.",
       });
+
+      // Optimistic Update: Hide button immediately
+      setPositions((prev) =>
+        prev.map((p) =>
+          p.marketId === marketId ? { ...p, hasClaimed: true } : p
+        )
+      );
     } catch (err: any) {
       console.error("Claim Error:", err);
       toast.error("Claim Failed", { description: err.message });
@@ -128,16 +138,18 @@ export function Portfolio({ onViewMarket }: PortfolioProps) {
     }
   };
 
-  // 3. Helper for Status (Won/Lost/Active)
+  // 3. Helper for Status (Won/Lost/Active/Claimed)
   const getPositionStatus = (pos: UserPosition) => {
-    console.log("position ", pos);
     if (pos.status === 1) return { type: "active", label: "Active" };
 
-    // Check if User Won
     const userWonYes = pos.outcome === true && pos.yesShares > 0;
     const userWonNo = pos.outcome === false && pos.noShares > 0;
 
     if (userWonYes || userWonNo) {
+      // 🟢 FIX 3: Check if already claimed
+      if (pos.hasClaimed) {
+        return { type: "claimed", label: "Claimed", canClaim: false };
+      }
       return { type: "won", label: "Won", canClaim: true };
     }
     return { type: "lost", label: "Lost" };
@@ -152,7 +164,7 @@ export function Portfolio({ onViewMarket }: PortfolioProps) {
       ? ((totalProfitLoss / totalInvested) * 100).toFixed(2)
       : "0.00";
 
-  // --- UI: Not Connected ---
+  // --- UI ---
   if (!address) {
     return (
       <div className="w-full max-w-2xl mx-auto px-4 py-20 text-center">
@@ -256,15 +268,16 @@ export function Portfolio({ onViewMarket }: PortfolioProps) {
               <div
                 key={position.marketId}
                 className={`bg-[#0f0f1a] border rounded-xl p-5 transition-all ${
-                  status.type === "won"
+                  status.type === "won" && !position.hasClaimed
                     ? "border-[#00ff88]/50 shadow-[0_0_15px_rgba(0,255,136,0.1)]"
+                    : status.type === "claimed"
+                    ? "border-[#00ff88]/20"
                     : "border-[#1F87FC]/30 hover:border-[#1F87FC]/60"
                 }`}
               >
                 {/* Prediction Info */}
                 <div className="flex items-start gap-4 mb-4">
                   <div className="w-16 h-12 flex-shrink-0">
-                    {/* 🟢 SMART MEDIA PREVIEW */}
                     <MediaPreview
                       src={position.prediction.media.url}
                       type={
@@ -277,7 +290,7 @@ export function Portfolio({ onViewMarket }: PortfolioProps) {
                     />
                   </div>
                   <div
-                    className="flex-1 min-w-0"
+                    className="flex-1 min-w-0 cursor-pointer"
                     onClick={() => onViewMarket(position.marketId)}
                   >
                     <p className="text-foreground mb-1 line-clamp-2">
@@ -292,6 +305,11 @@ export function Portfolio({ onViewMarket }: PortfolioProps) {
                       {status.type === "won" && (
                         <span className="text-[10px] font-bold text-[#00ff88] bg-[#00ff88]/10 px-1.5 py-0.5 rounded border border-[#00ff88]/20">
                           WON
+                        </span>
+                      )}
+                      {status.type === "claimed" && (
+                        <span className="text-[10px] font-bold text-[#00ff88] bg-[#00ff88]/10 px-1.5 py-0.5 rounded border border-[#00ff88]/20 flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3" /> CLAIMED
                         </span>
                       )}
                       {status.type === "lost" && (
@@ -336,7 +354,7 @@ export function Portfolio({ onViewMarket }: PortfolioProps) {
                     </span>
                   </div>
 
-                  {/* 🟢 CONDITIONAL FOOTER: Show Claim Button if won, else show P&L */}
+                  {/* 🟢 CONDITIONAL FOOTER: Show Claim Button ONLY if won & NOT claimed */}
                   {status.canClaim ? (
                     <button
                       onClick={(e) => handleClaim(position.marketId, e)}

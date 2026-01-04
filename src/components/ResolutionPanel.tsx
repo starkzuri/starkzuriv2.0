@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useWallet } from "../context/WalletContext";
-import { useResolution } from "../hooks/useResolution"; // 🟢 Import the new hook
+import { useResolution } from "../hooks/useResolution";
 import { AlertTriangle, Gavel, CheckCircle, Clock } from "lucide-react";
 
 interface ResolutionPanelProps {
@@ -13,6 +13,7 @@ interface ResolutionPanelProps {
   myShares?: {
     yes: number;
     no: number;
+    hasClaimed?: boolean; // 🟢 ADDED: New optional flag
   };
 }
 
@@ -22,7 +23,7 @@ export function ResolutionPanel({
   status,
   outcome,
   proposalTimestamp,
-  myShares = { yes: 0, no: 0 },
+  myShares = { yes: 0, no: 0, hasClaimed: false }, // 🟢 Default false
 }: ResolutionPanelProps) {
   const { address } = useWallet();
   const { proposeOutcome, challengeOutcome, finalizeMarket, claimWinnings } =
@@ -30,19 +31,14 @@ export function ResolutionPanel({
 
   const [selectedOutcome, setSelectedOutcome] = useState<boolean>(true);
 
-  // --- RENDER STATES ---
-
-  // 1. RESOLVED
-  // 1. RESOLVED (Status 3)
+  // --- 1. RESOLVED (Status 3) ---
   if (status === 3) {
-    // 🧠 LOGIC: Did the user pick the winner?
-    // If outcome is TRUE (YES), check YES shares.
-    // If outcome is FALSE (NO), check NO shares.
     const winningShares = outcome ? myShares.yes : myShares.no;
     const isWinner = winningShares > 0;
-
-    // Did they bet at all?
     const hasParticipated = myShares.yes > 0 || myShares.no > 0;
+
+    // 🟢 CHECK: Has the user already claimed?
+    const alreadyClaimed = myShares.hasClaimed === true;
 
     return (
       <div className="bg-[#00ff88]/10 border border-[#00ff88]/40 p-6 rounded-xl text-center space-y-4">
@@ -60,8 +56,17 @@ export function ResolutionPanel({
 
         {/* 🟢 INTELLIGENT CLAIM SECTION */}
         <div className="pt-4 border-t border-[#00ff88]/20">
-          {/* CASE A: WINNER */}
-          {isWinner && (
+          {/* CASE A: ALREADY CLAIMED */}
+          {isWinner && alreadyClaimed && (
+            <div className="bg-[#00ff88]/20 p-3 rounded-lg border border-[#00ff88]/50">
+              <p className="text-[#00ff88] font-bold flex items-center justify-center gap-2">
+                <CheckCircle className="w-4 h-4" /> Winnings Claimed
+              </p>
+            </div>
+          )}
+
+          {/* CASE B: WINNER (Needs to Claim) */}
+          {isWinner && !alreadyClaimed && (
             <>
               <p className="text-sm text-[#00ff88] mb-3">
                 🎉 Congratulations! You hold <b>{winningShares.toFixed(2)}</b>{" "}
@@ -76,7 +81,7 @@ export function ResolutionPanel({
             </>
           )}
 
-          {/* CASE B: LOSER (Participated but lost) */}
+          {/* CASE C: LOSER (Participated but lost) */}
           {!isWinner && hasParticipated && (
             <div className="bg-black/20 p-3 rounded-lg border border-red-500/20">
               <p className="text-gray-400 text-sm">
@@ -85,7 +90,7 @@ export function ResolutionPanel({
             </div>
           )}
 
-          {/* CASE C: SPECTATOR (Did not bet) */}
+          {/* CASE D: SPECTATOR (Did not bet) */}
           {!hasParticipated && (
             <div className="bg-black/20 p-3 rounded-lg">
               <p className="text-gray-500 text-sm">
@@ -97,7 +102,8 @@ export function ResolutionPanel({
       </div>
     );
   }
-  // 2. DISPUTED
+
+  // --- 2. DISPUTED (Status 4) ---
   if (status === 4) {
     return (
       <div className="bg-[#ff3366]/10 border border-[#ff3366]/40 p-6 rounded-xl text-center">
@@ -108,10 +114,10 @@ export function ResolutionPanel({
     );
   }
 
-  // 3. PROPOSED (Review Period)
+  // --- 3. PROPOSED (Status 2) ---
   if (status === 2) {
     const now = Math.floor(Date.now() / 1000);
-    const disputeEnd = (proposalTimestamp || 0) + 1800; // 5min window
+    const disputeEnd = (proposalTimestamp || 0) + 1800; // 30min window (1800s)
     const isFinalizable = now > disputeEnd;
 
     return (
@@ -158,11 +164,12 @@ export function ResolutionPanel({
     );
   }
 
-  // 4. ACTIVE BUT EXPIRED (Waiting for Proposal)
+  // --- 4. ACTIVE BUT EXPIRED (Status 1 + Time ended) ---
 
-  const isCreator = BigInt(address) === BigInt(creatorAddress);
-  console.log("my address: ", BigInt(address));
-  console.log("creator address ", BigInt(creatorAddress));
+  // Safety check for address undefined
+  const safeAddress = address ? BigInt(address) : BigInt(0);
+  const safeCreator = creatorAddress ? BigInt(creatorAddress) : BigInt(0);
+  const isCreator = safeAddress === safeCreator && safeAddress !== BigInt(0);
 
   if (!isCreator) {
     return (
@@ -176,7 +183,7 @@ export function ResolutionPanel({
     );
   }
 
-  // 5. CREATOR INTERFACE
+  // --- 5. CREATOR INTERFACE ---
   return (
     <div className="bg-[#1a1a24] border border-[#1F87FC]/30 p-6 rounded-xl">
       <h3 className="text-white font-bold text-lg mb-2">📢 Propose Outcome</h3>
