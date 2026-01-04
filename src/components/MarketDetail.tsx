@@ -79,7 +79,11 @@ export function MarketDetail({ marketId, onBack }: MarketDetailProps) {
 
   // Real Data State
   const [chartData, setChartData] = useState<any[]>([]);
-  const [myShares, setMyShares] = useState({ yes: 0, no: 0 });
+  const [myShares, setMyShares] = useState({
+    yes: 0,
+    no: 0,
+    hasClaimed: false,
+  });
 
   // Chart & Comment State
   const [activeChart, setActiveChart] = useState<"yes" | "no" | "both">("both");
@@ -89,20 +93,31 @@ export function MarketDetail({ marketId, onBack }: MarketDetailProps) {
   const API_URL = "https://starknet-indexer-apibara.onrender.com";
   console.log("my shares ", myShares);
   // 1. Fetch Market Data & History
+  // 1. Fetch Market Data & History (Optimized)
   useEffect(() => {
     const fetchMarketData = async () => {
       try {
-        const res = await fetch(API_URL + "/markets");
-        const data: ApiMarket[] = await res.json();
-        const rawMarket = data.find((m) => m.marketId.toString() === marketId);
+        // 🟢 FIX: Fetch ONLY the specific market by ID
+        // This solves the "Market not found" issue for older markets
+        const res = await fetch(`${API_URL}/markets/${marketId}`);
+
+        if (!res.ok) {
+          console.error("Market fetch failed:", res.status);
+          setLoading(false);
+          return;
+        }
+
+        const rawMarket: ApiMarket = await res.json();
         console.log("rawMarket felabs", rawMarket);
 
         if (rawMarket) {
-          setApiData(rawMarket); // 🟢 Store raw data for resolution panel
+          setApiData(rawMarket); // Store raw data for resolution panel
 
           const mediaStr = rawMarket.media || "";
           const isVideo =
             mediaStr.endsWith(".mp4") || mediaStr.endsWith(".webm");
+
+          // Helper to clean IPFS urls
           let mediaUrl = mediaStr.includes("ipfs")
             ? mediaStr.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/")
             : "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&w=1000&q=80";
@@ -114,7 +129,6 @@ export function MarketDetail({ marketId, onBack }: MarketDetailProps) {
               name: `User ${rawMarket.creator.slice(0, 4)}`,
               username: `@${rawMarket.creator.slice(0, 6)}...`,
               avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${rawMarket.creator}`,
-              // 🟢 Ensure we pass the full address string here if your type allows, or use rawMarket.creator below
             },
             question: rawMarket.question,
             category: rawMarket.category || "General",
@@ -142,40 +156,40 @@ export function MarketDetail({ marketId, onBack }: MarketDetailProps) {
           setComments(mockComments["1"] || []);
         }
 
+        // --- Fetch History (unchanged) ---
         const historyRes = await fetch(
           `${API_URL}/markets/${marketId}/history`
         );
-        const historyData = await historyRes.json();
-        const formattedHistory = historyData.map((item: any) => ({
-          ...item,
-          timestamp: item.timestamp * 1000,
-          yesPrice: Number(item.yesPrice),
-          noPrice: Number(item.noPrice),
-        }));
-        setChartData(formattedHistory);
+        if (historyRes.ok) {
+          const historyData = await historyRes.json();
+          const formattedHistory = historyData.map((item: any) => ({
+            ...item,
+            timestamp: item.timestamp * 1000,
+            yesPrice: Number(item.yesPrice),
+            noPrice: Number(item.noPrice),
+          }));
+          setChartData(formattedHistory);
+        }
 
+        // --- Fetch User Position (unchanged) ---
         if (address) {
           try {
-            // 🟢 1. Use the helper to pad the address (0x04...)
             const dbAddress = formatAddress(address);
             const url = `${API_URL}/markets/${marketId}/position/${dbAddress}`;
-
-            // 🟢 2. Fetch
             const positionRes = await fetch(url);
 
             if (positionRes.ok) {
               const data = await positionRes.json();
-              console.log("✅ Position Loaded:", data);
-
-              // 🟢 3. Update State (This triggers the UI to show you participated!)
               setMyShares({
                 yes: Number(data.yesShares || data.yes_shares || 0),
                 no: Number(data.noShares || data.no_shares || 0),
+                // 🟢 Capture the claimed status we added to DB earlier
+                hasClaimed: Boolean(
+                  data.hasClaimed || data.has_claimed || false
+                ),
               });
             } else {
-              // If 404, it just means no position exists yet
-              console.log("No position found for this market.");
-              setMyShares({ yes: 0, no: 0 });
+              setMyShares({ yes: 0, no: 0, hasClaimed: false });
             }
           } catch (e) {
             console.error("Failed to load position:", e);
@@ -187,6 +201,7 @@ export function MarketDetail({ marketId, onBack }: MarketDetailProps) {
         setLoading(false);
       }
     };
+
     fetchMarketData();
     const interval = setInterval(fetchMarketData, 5000);
     return () => clearInterval(interval);
@@ -419,7 +434,7 @@ export function MarketDetail({ marketId, onBack }: MarketDetailProps) {
               status={apiData?.status || 1}
               outcome={apiData?.outcome}
               proposalTimestamp={apiData?.proposalTimestamp}
-              myShares={myShares || { yes: 0, no: 0 }}
+              myShares={myShares}
             />
           )}
 

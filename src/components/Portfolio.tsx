@@ -53,6 +53,7 @@ export function Portfolio({ onViewMarket }: PortfolioProps) {
         const marketsData: ApiMarket[] = await marketsRes.json();
         const posRes = await fetch(`${API_URL}/positions/${address}`);
         const myBets = await posRes.json();
+        console.log("mybets ", myBets);
 
         const activePositions: UserPosition[] = myBets
           .map((bet: any) => {
