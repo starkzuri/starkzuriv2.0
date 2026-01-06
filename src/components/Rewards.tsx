@@ -84,7 +84,11 @@ const areAddressesEqual = (a: string | undefined, b: string | undefined) => {
   }
 };
 
-export function Rewards() {
+interface RewardsProps {
+  onViewProfile?: (address: string) => void; // Optional callback
+}
+
+export function Rewards({ onViewProfile }: RewardsProps) {
   const { address } = useWallet();
   const [activeTab, setActiveTab] = useState<RewardsTab>("overview");
   const [loading, setLoading] = useState(false);
@@ -449,6 +453,7 @@ export function Rewards() {
 
       {/* LEADERBOARD TAB */}
 
+      {/* LEADERBOARD TAB */}
       {activeTab === "leaderboard" && (
         <div className="space-y-3 animate-in fade-in duration-300">
           {!leaderboard || leaderboard.length === 0 ? (
@@ -457,24 +462,44 @@ export function Rewards() {
             </div>
           ) : (
             leaderboard.map((user, index) => {
-              // 🟢 2. Use the robust comparison here
               const isCurrentUser = areAddressesEqual(user.address, address);
-
-              const avatarUrl =
-                "https://api.dicebear.com/7.x/identicon/svg?seed=" +
-                user.address;
               const rank = index + 1;
+
+              // 🟢 LOGIC: Use Profile Data if available, else default to Address
+              const hasProfile = user.displayName || user.username;
+
+              const displayName = user.displayName
+                ? user.displayName
+                : user.username
+                ? user.username
+                : `${user.address.slice(0, 6)}...${user.address.slice(-4)}`;
+
+              const subText =
+                user.username && user.displayName
+                  ? user.username // If display name exists, show @username below
+                  : !hasProfile
+                  ? "No Profile Set"
+                  : `${user.address.slice(0, 6)}...${user.address.slice(-4)}`; // Else show address
+
+              // Use custom avatar if set, otherwise generate one
+              const avatarUrl = user.avatarUrl
+                ? user.avatarUrl
+                : "https://api.dicebear.com/7.x/identicon/svg?seed=" +
+                  user.address;
 
               return (
                 <div
                   key={user.address}
-                  // 🟢 3. Made the highlighting slightly more aggressive (thicker border + brighter bg)
+                  onClick={() => {
+                    if (onViewProfile) onViewProfile(user.address);
+                  }}
                   className={`bg-[#0f0f1a] border rounded-lg p-3 md:p-4 flex items-center gap-3 md:gap-4 transition-all hover:border-[#1F87FC]/60 ${
                     isCurrentUser
                       ? "border-[#1F87FC] border-2 bg-[#1F87FC]/20 shadow-[0_0_20px_rgba(31,135,252,0.2)]"
                       : "border-white/10"
                   }`}
                 >
+                  {/* Rank Badge */}
                   <div className="flex-shrink-0 w-8 text-center font-bold">
                     {rank === 1 && <span className="text-2xl">🥇</span>}
                     {rank === 2 && <span className="text-2xl">🥈</span>}
@@ -482,12 +507,14 @@ export function Rewards() {
                     {rank > 3 && <span className="text-gray-500">#{rank}</span>}
                   </div>
 
+                  {/* Avatar */}
                   <img
                     src={avatarUrl}
                     alt="avatar"
-                    className="w-10 h-10 rounded-full border border-white/20 bg-black"
+                    className="w-10 h-10 rounded-full border border-white/20 bg-black object-cover"
                   />
 
+                  {/* Name & Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span
@@ -495,7 +522,7 @@ export function Rewards() {
                           isCurrentUser ? "text-[#1F87FC]" : "text-white"
                         }`}
                       >
-                        {user.address.slice(0, 6)}...{user.address.slice(-4)}
+                        {displayName}
                       </span>
                       {isCurrentUser && (
                         <span className="text-[10px] bg-[#1F87FC] text-white px-1.5 py-0.5 rounded font-bold">
@@ -503,8 +530,15 @@ export function Rewards() {
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                      <span className="flex items-center gap-1">
+
+                    {/* Subtext: Username or Address */}
+                    <div className="text-xs text-muted-foreground mb-1 truncate">
+                      {subText}
+                    </div>
+
+                    {/* Stats Row */}
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5 border-t border-white/5 pt-1">
+                      <span className="flex items-center gap-1 text-[#00ff88]">
                         <Zap className="w-3 h-3" /> Lvl {user.level}
                       </span>
                       <span className="flex items-center gap-1">
@@ -514,8 +548,9 @@ export function Rewards() {
                     </div>
                   </div>
 
+                  {/* XP */}
                   <div className="text-right">
-                    <div className="text-[#00ff88] font-mono font-bold">
+                    <div className="text-[#1F87FC] font-mono font-bold text-sm md:text-base">
                       {formatNumber(user.xp)} XP
                     </div>
                   </div>

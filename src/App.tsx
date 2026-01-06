@@ -1,113 +1,4 @@
-// import { useState } from "react";
-// import { Sidebar } from "./components/Sidebar";
-// import { BottomNav } from "./components/BottomNav";
-// import { HomeFeed } from "./components/HomeFeed";
-// import { CreatePrediction } from "./components/CreatePrediction";
-// import { MarketExplore } from "./components/MarketExplore";
-// import { Portfolio } from "./components/Portfolio";
-// import { Profile } from "./components/Profile";
-// import { MarketDetail } from "./components/MarketDetail";
-// import { Rewards } from "./components/Rewards";
-// import { LoginModal } from "./components/LoginModal";
-// import { mockPredictions } from "./data/mockData";
-// import { toast } from "sonner@2.0.3";
-
-// type Screen =
-//   | "home"
-//   | "market"
-//   | "create"
-//   | "portfolio"
-//   | "profile"
-//   | "rewards"
-//   | "market-detail";
-
-// export default function App() {
-//   const [activeScreen, setActiveScreen] = useState<Screen>("home");
-//   const [selectedMarketId, setSelectedMarketId] = useState<string | null>(null);
-//   const [isLoggedIn, setIsLoggedIn] = useState(false);
-//   const [showLoginModal, setShowLoginModal] = useState(false);
-
-//   const handleLogin = () => {
-//     setIsLoggedIn(true);
-//     toast.success("Wallet connected successfully!");
-//   };
-
-//   const handleOpenLogin = () => {
-//     setShowLoginModal(true);
-//   };
-
-//   const handleViewMarket = (id: string) => {
-//     setSelectedMarketId(id);
-//     setActiveScreen("market-detail");
-//   };
-
-//   const handleBackToFeed = () => {
-//     setActiveScreen("home");
-//     setSelectedMarketId(null);
-//   };
-
-//   const renderScreen = () => {
-//     switch (activeScreen) {
-//       case "home":
-//         return <HomeFeed onViewMarket={handleViewMarket} />;
-//       case "market":
-//         return <MarketExplore onViewMarket={handleViewMarket} />;
-//       case "create":
-//         return <CreatePrediction />;
-//       case "rewards":
-//         return <Rewards />;
-//       case "portfolio":
-//         return <Portfolio />;
-//       case "profile":
-//         return <Profile />;
-//       case "market-detail":
-//         const prediction = mockPredictions.find(
-//           (p) => p.id === selectedMarketId
-//         );
-//         return prediction ? (
-//           <MarketDetail prediction={prediction} onBack={handleBackToFeed} />
-//         ) : (
-//           <HomeFeed onViewMarket={handleViewMarket} />
-//         );
-//       default:
-//         return <HomeFeed onViewMarket={handleViewMarket} />;
-//     }
-//   };
-
-//   return (
-//     <div className="min-h-screen bg-[#0a0a0f] text-foreground">
-//       <div className="flex">
-//         {/* Desktop Sidebar */}
-//         <Sidebar
-//           activeScreen={activeScreen}
-//           onNavigate={(screen) => setActiveScreen(screen as Screen)}
-//           isLoggedIn={isLoggedIn}
-//           onLogin={handleOpenLogin}
-//         />
-
-//         {/* Main Content */}
-//         <main className="flex-1 min-h-screen pb-20 lg:pb-0">
-//           <div className="max-w-7xl mx-auto">{renderScreen()}</div>
-//         </main>
-//       </div>
-
-//       {/* Mobile Bottom Navigation */}
-//       <BottomNav
-//         activeScreen={activeScreen}
-//         onNavigate={(screen) => setActiveScreen(screen as Screen)}
-//       />
-
-//       {/* Login Modal */}
-//       <LoginModal
-//         isOpen={showLoginModal}
-//         onClose={() => setShowLoginModal(false)}
-//         onLogin={handleLogin}
-//       />
-//     </div>
-//   );
-// }
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 // 🟢 FIX: Import YOUR hook, remove @starknet-react/core imports
 import { useWallet } from "./context/WalletContext";
 
@@ -136,6 +27,9 @@ export default function App() {
   const [activeScreen, setActiveScreen] = useState<Screen>("home");
   const [selectedMarketId, setSelectedMarketId] = useState<string | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [selectedProfileAddress, setSelectedProfileAddress] = useState<
+    string | null
+  >(null);
 
   // 🟢 FIX: Use your existing context state
   const { address, account, disconnectWallet, connectWallet } = useWallet();
@@ -146,6 +40,21 @@ export default function App() {
     // But usually, LoginModal calls connectWallet directly.
     setShowLoginModal(false);
   };
+
+  useEffect(() => {
+    // 1. Get URL params
+    const params = new URLSearchParams(window.location.search);
+    const refParam = params.get("ref");
+
+    // 2. If ref exists, save it to Local Storage
+    if (refParam) {
+      // Optional: Validate it looks like a Starknet address (starts with 0x)
+      if (refParam.startsWith("0x")) {
+        console.log("🔗 Referral detected:", refParam);
+        localStorage.setItem("starkzuri_referrer", refParam);
+      }
+    }
+  }, []);
 
   const handleOpenLogin = () => {
     if (isConnected) {
@@ -163,6 +72,25 @@ export default function App() {
     setActiveScreen("market-detail");
   };
 
+  const handleViewProfile = (addr: string) => {
+    setSelectedProfileAddress(addr); // Set the specific user
+    setActiveScreen("profile"); // Switch screen
+  };
+
+  // Reset to "My Profile" when clicking the menu button
+  const handleNavToProfile = () => {
+    setSelectedProfileAddress(null); // Clear specific user => defaults to me
+    setActiveScreen("profile");
+  };
+
+  // Wrapper to clean state when changing screens via menu
+  const handleMenuNavigate = (screen: Screen) => {
+    if (screen === "profile") {
+      setSelectedProfileAddress(null);
+    }
+    setActiveScreen(screen);
+  };
+
   const handleBackToFeed = () => {
     setActiveScreen("home");
     setSelectedMarketId(null);
@@ -177,11 +105,11 @@ export default function App() {
       case "create":
         return <CreatePrediction />;
       case "rewards":
-        return <Rewards />;
+        return <Rewards onViewProfile={handleViewProfile} />;
       case "portfolio":
         return <Portfolio onViewMarket={handleViewMarket} />;
       case "profile":
-        return <Profile />;
+        return <Profile targetAddress={selectedProfileAddress} />;
 
       case "market-detail":
         if (selectedMarketId) {

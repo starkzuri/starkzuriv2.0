@@ -15,6 +15,7 @@
 //   Moon,
 //   Sun,
 //   Loader2,
+//   Users, // Icon for referrals
 // } from "lucide-react";
 // import { toast } from "sonner";
 // import { useWallet } from "../context/WalletContext";
@@ -22,19 +23,27 @@
 // import { MediaPreview } from "./MediaPreview";
 // import { mapMarketToPrediction, ApiMarket } from "../lib/marketMapper";
 // import { Prediction } from "../types/prediction";
+// import { useProfile } from "../hooks/useProfile"; // 🟢 IMPORT HOOK
 
-// // 🟢 Ensure Port is 8000 (Backend)
 // const API_URL = import.meta.env.VITE_INDEXER_SERVER_URL;
 
 // type ProfileTab = "predictions" | "investments" | "media" | "settings";
 
-// export function Profile() {
+// interface ProfileProps {
+//   targetAddress?: string | null; // 🟢 Optional prop
+// }
+
+// export function Profile({targetAddress}: ProfileProps) {
 //   const { address, disconnectWallet } = useWallet();
 //   const { setTheme, theme } = useTheme();
+// const activeAddress = targetAddress || address
+//   // 🟢 1. Initialize Hook
+//   const { updateProfile } = useProfile();
 
 //   const [activeTab, setActiveTab] = useState<ProfileTab>("predictions");
 //   const [isEditing, setIsEditing] = useState(false);
 //   const [loading, setLoading] = useState(false);
+//   const [saving, setSaving] = useState(false); // UI state for saving
 
 //   // Data State
 //   const [createdMarkets, setCreatedMarkets] = useState<Prediction[]>([]);
@@ -44,69 +53,54 @@
 //     investments: 0,
 //     totalProfit: 0,
 //     winRate: 0,
+//     referrals: 0, // 🟢 Track referrals
 //   });
 
-//   // Profile State (LocalStorage)
-//   const [profilePic, setProfilePic] = useState<string | null>(() =>
-//     localStorage.getItem("user_avatar")
-//   );
-//   const [formData, setFormData] = useState(() => {
-//     const saved = localStorage.getItem("user_profile");
-//     return saved
-//       ? JSON.parse(saved)
-//       : {
-//           displayName: "CyberTrader",
-//           username: "@cybertrader",
-//           bio: "Professional prediction trader | Tech enthusiast | Blockchain believer",
-//         };
+//   const [profilePic, setProfilePic] = useState<string | null>(null);
+//   const [formData, setFormData] = useState({
+//     displayName: "",
+//     username: "",
+//     bio: "",
 //   });
 
-//   // 1. FETCH REAL DATA
+//   const isOwnProfile =
+
+//   // --- FETCH DATA ---
 //   useEffect(() => {
 //     if (!address) return;
 
 //     const fetchData = async () => {
 //       setLoading(true);
 //       try {
-//         // 🟢 FIX 1: Fetch Created Markets Direct from API (Efficient)
+//         // A. Markets (Unchanged)
 //         const createdRes = await fetch(`${API_URL}/markets/created/${address}`);
 //         const createdData: ApiMarket[] = await createdRes.json();
 //         const myMarkets = createdData.map(mapMarketToPrediction);
 //         setCreatedMarkets(myMarkets);
 
-//         // 🟢 FIX 2: We still need ALL markets to price our investments
-//         // (In a prod app, we would optimize this, but for now this is safe)
+//         // B. Investments (Unchanged)
 //         const allMarketsRes = await fetch(`${API_URL}/markets`);
 //         const allMarketsData: ApiMarket[] = await allMarketsRes.json();
-
-//         // 🟢 FIX 3: Fetch Positions
 //         const posRes = await fetch(`${API_URL}/positions/${address}`);
 //         const positionsData = await posRes.json();
 
-//         // Calculate Investment Stats
 //         let calculatedProfit = 0;
 //         const myInvestments = positionsData
 //           .map((pos: any) => {
-//             // Find market details from the full list
 //             const market = allMarketsData.find(
 //               (m) => m.marketId === pos.marketId
 //             );
 //             if (!market) return null;
-
 //             const yesShares = Number(pos.yesShares);
 //             const noShares = Number(pos.noShares);
 //             if (yesShares === 0 && noShares === 0) return null;
-
 //             const currentValue =
 //               yesShares * market.yesPrice + noShares * market.noPrice;
-//             const cost = (yesShares + noShares) * 0.5; // MVP estimate
-//             const pnl = currentValue - cost;
-
-//             calculatedProfit += pnl;
-
+//             const cost = Number(pos.totalInvested || 0);
+//             calculatedProfit += currentValue - cost;
 //             return {
 //               ...mapMarketToPrediction(market),
-//               pnl,
+//               pnl: currentValue - cost,
 //               currentValue,
 //             };
 //           })
@@ -114,41 +108,75 @@
 
 //         setInvestments(myInvestments);
 
-//         // Update Stats
-//         setStats({
-//           predictions: myMarkets.length,
-//           investments: myInvestments.length,
-//           totalProfit: Number(calculatedProfit.toFixed(2)),
-//           winRate: 68, // Placeholder
-//         });
+//         // 🟢 C. FETCH PROFILE & REFERRALS FROM API
+//         // We fetch from the indexer to see the "Real" data
+//         const userRes = await fetch(`${API_URL}/users/${address}`);
+//         const userData = await userRes.json();
+
+//         if (userData && !userData.error) {
+//           setFormData({
+//             displayName: userData.displayName || "Unknown Trader",
+//             username: userData.username || "@user",
+//             bio: userData.bio || "No bio yet.",
+//           });
+//           // Only overwrite profilePic if we have one, otherwise keep null default
+//           if (userData.avatarUrl) setProfilePic(userData.avatarUrl);
+
+//           setStats({
+//             predictions: myMarkets.length,
+//             investments: myInvestments.length,
+//             totalProfit: Number(calculatedProfit.toFixed(2)),
+//             winRate: 68,
+//             referrals: userData.referralCount || 0, // 🟢 Get count from DB
+//           });
+//         }
 //       } catch (error) {
 //         console.error("Profile fetch error:", error);
 //       } finally {
 //         setLoading(false);
 //       }
 //     };
-
 //     fetchData();
 //   }, [address]);
 
-//   // --- Handlers (Unchanged) ---
-//   const handleSave = () => {
-//     // localStorage.setItem("user_profile", JSON.stringify(formData));
-//     // if (profilePic) localStorage.setItem("user_avatar", profilePic);
-//     // toast.success("Profile updated successfully!");
-//     // setIsEditing(false);
-//     alert("saved successfully");
-//   };
+//   // --- 🟢 HANDLE SAVE (THE FIX) ---
+//   const handleSave = async () => {
+//     if (!address) return;
+//     setSaving(true);
 
-//   const handleCancel = () => {
-//     const saved = localStorage.getItem("user_profile");
-//     if (saved) setFormData(JSON.parse(saved));
-//     setIsEditing(false);
+//     // 1. Get Optional Referrer
+//     // If user clicked a link previously, it's saved here. If not, it returns null.
+//     const storedReferrer = localStorage.getItem("starkzuri_referrer");
+
+//     // 2. Get Optional Image
+//     // Use current state (new upload) OR existing string OR empty string
+//     const finalAvatarUrl = profilePic || "";
+
+//     // 3. Call Smart Contract via Hook
+//     const txHash = await updateProfile(
+//       formData.username,
+//       formData.displayName,
+//       formData.bio,
+//       finalAvatarUrl,
+//       storedReferrer // 🟢 Passes address string or null
+//     );
+
+//     if (txHash) {
+//       setIsEditing(false);
+//       // Optional: Clear referrer after successful use so we don't spam it?
+//       // localStorage.removeItem("starkzuri_referrer");
+//     }
+//     setSaving(false);
 //   };
 
 //   const handleProfilePicChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 //     const file = e.target.files?.[0];
 //     if (file) {
+//       // Limit file size for basic Base64 handling (e.g., < 500KB)
+//       if (file.size > 500000) {
+//         toast.error("Image too large. Please use an image under 500KB.");
+//         return;
+//       }
 //       const reader = new FileReader();
 //       reader.onloadend = () => setProfilePic(reader.result as string);
 //       reader.readAsDataURL(file);
@@ -217,16 +245,19 @@
 //           ) : (
 //             <div className="flex gap-2">
 //               <button
-//                 onClick={handleCancel}
+//                 onClick={() => setIsEditing(false)}
+//                 disabled={saving}
 //                 className="flex items-center gap-2 px-3 py-1.5 bg-[#0a0a0f] border border-border rounded-lg text-muted-foreground hover:text-foreground transition-all text-xs md:text-sm"
 //               >
 //                 <X className="w-3.5 h-3.5" /> Cancel
 //               </button>
 //               <button
 //                 onClick={handleSave}
-//                 className="flex items-center gap-2 px-3 py-1.5 bg-[#1F87FC] border border-[#1F87FC] rounded-lg text-white hover:bg-[#1F87FC]/90 transition-all text-xs md:text-sm"
+//                 disabled={saving}
+//                 className="flex items-center gap-2 px-3 py-1.5 bg-[#1F87FC] border border-[#1F87FC] rounded-lg text-white hover:bg-[#1F87FC]/90 transition-all text-xs md:text-sm disabled:opacity-50"
 //               >
-//                 Save
+//                 {saving && <Loader2 className="w-3 h-3 animate-spin" />}
+//                 {saving ? "Saving..." : "Save"}
 //               </button>
 //             </div>
 //           )}
@@ -275,7 +306,7 @@
 //               <>
 //                 <div className="flex items-center gap-2 mb-1">
 //                   <h2 className="text-foreground text-lg md:text-xl font-bold">
-//                     {formData.displayName}
+//                     {formData.displayName || "Anonymous"}
 //                   </h2>
 //                   <div className="px-2 py-0.5 bg-gradient-to-r from-[#1F87FC]/20 to-[#00ff88]/20 border border-[#1F87FC]/40 rounded text-xs flex items-center gap-1">
 //                     <span>{currentLevel.icon}</span>
@@ -285,10 +316,10 @@
 //                   </div>
 //                 </div>
 //                 <p className="text-muted-foreground text-xs md:text-sm mb-2 font-mono">
-//                   {formData.username}
+//                   {formData.username || shortAddr}
 //                 </p>
 //                 <p className="text-foreground text-xs md:text-sm leading-relaxed">
-//                   {formData.bio}
+//                   {formData.bio || "No bio yet."}
 //                 </p>
 //               </>
 //             ) : (
@@ -341,9 +372,9 @@
 //           </div>
 //           <div className="text-center">
 //             <div className="text-xl md:text-2xl text-[#1F87FC] font-mono">
-//               0
+//               {stats.referrals}
 //             </div>
-//             <div className="text-xs text-muted-foreground">Followers</div>
+//             <div className="text-xs text-muted-foreground">Referrals</div>
 //           </div>
 //           <div className="text-center">
 //             <div className="text-xl md:text-2xl text-[#1F87FC] font-mono">
@@ -398,7 +429,7 @@
 //         ))}
 //       </div>
 
-//       {/* TAB CONTENT */}
+//       {/* CONTENT (Only Settings changed to add Link Copying) */}
 //       <div>
 //         {loading ? (
 //           <div className="py-12 flex justify-center">
@@ -549,33 +580,30 @@
 //                   </div>
 //                 </div>
 
+//                 {/* 🟢 NEW: Referral Link Section */}
 //                 <div className="bg-[#0f0f1a] border border-[#1F87FC]/30 rounded-xl p-4">
 //                   <h3 className="text-sm font-medium text-muted-foreground mb-4 uppercase tracking-wider">
-//                     Appearance
+//                     Referral Link
 //                   </h3>
-//                   <div className="flex items-center justify-between p-3 rounded-lg hover:bg-[#1F87FC]/5 transition-colors">
-//                     <div className="flex items-center gap-3">
-//                       <div className="p-2 rounded-lg bg-[#1F87FC]/10 text-[#1F87FC]">
-//                         {theme === "dark" ? (
-//                           <Moon className="w-5 h-5" />
-//                         ) : (
-//                           <Sun className="w-5 h-5" />
-//                         )}
-//                       </div>
-//                       <div>
-//                         <p className="font-medium text-sm text-white">Theme</p>
-//                         <p className="text-xs text-muted-foreground">
-//                           {theme === "dark" ? "Dark Mode" : "Light Mode"}
-//                         </p>
-//                       </div>
+//                   <div className="flex items-center justify-between bg-black/20 p-3 rounded-lg border border-[#1F87FC]/10">
+//                     <div className="flex flex-col truncate mr-2">
+//                       <span className="text-xs text-muted-foreground mb-1">
+//                         Share this link to earn XP
+//                       </span>
+//                       <span className="font-mono text-xs text-white truncate">
+//                         {window.location.origin}/?ref={address}
+//                       </span>
 //                     </div>
 //                     <button
-//                       onClick={() =>
-//                         setTheme(theme === "dark" ? "light" : "dark")
-//                       }
-//                       className="px-3 py-1.5 bg-[#1F87FC]/10 border border-[#1F87FC]/30 rounded-lg text-xs text-[#1F87FC]"
+//                       onClick={() => {
+//                         navigator.clipboard.writeText(
+//                           `${window.location.origin}/?ref=${address}`
+//                         );
+//                         toast.success("Referral link copied!");
+//                       }}
+//                       className="p-2 bg-[#1F87FC]/20 text-[#1F87FC] rounded hover:bg-[#1F87FC] hover:text-white transition-all"
 //                     >
-//                       Toggle
+//                       <Copy className="w-4 h-4" />
 //                     </button>
 //                   </div>
 //                 </div>
@@ -612,7 +640,8 @@ import {
   Moon,
   Sun,
   Loader2,
-  Users, // Added Icon for Referrals
+  Users,
+  Eye, // 🟢 Added Eye icon for spectator mode
 } from "lucide-react";
 import { toast } from "sonner";
 import { useWallet } from "../context/WalletContext";
@@ -620,23 +649,36 @@ import { useTheme } from "next-themes";
 import { MediaPreview } from "./MediaPreview";
 import { mapMarketToPrediction, ApiMarket } from "../lib/marketMapper";
 import { Prediction } from "../types/prediction";
-import { useProfile } from "../hooks/useProfile"; // 🟢 1. IMPORT THE HOOK
+import { useProfile } from "../hooks/useProfile";
 
 const API_URL = import.meta.env.VITE_INDEXER_SERVER_URL;
 
 type ProfileTab = "predictions" | "investments" | "media" | "settings";
 
-export function Profile() {
+interface ProfileProps {
+  targetAddress?: string | null;
+}
+
+export function Profile({ targetAddress }: ProfileProps) {
   const { address, disconnectWallet } = useWallet();
   const { setTheme, theme } = useTheme();
-
-  // 🟢 2. INITIALIZE THE HOOK
   const { updateProfile } = useProfile();
+
+  // 🟢 1. LOGIC: WHO ARE WE LOOKING AT?
+  // If targetAddress exists, use it. Otherwise, fallback to connected wallet.
+  const activeAddress = targetAddress || address;
+
+  // 🟢 2. LOGIC: AM I LOOKING AT MYSELF?
+  // We use BigInt to ensure 0x0abc equals 0xabc
+  const isOwnProfile =
+    address && activeAddress
+      ? BigInt(address) === BigInt(activeAddress)
+      : false;
 
   const [activeTab, setActiveTab] = useState<ProfileTab>("predictions");
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false); // New state for save button
+  const [saving, setSaving] = useState(false);
 
   // Data State
   const [createdMarkets, setCreatedMarkets] = useState<Prediction[]>([]);
@@ -646,7 +688,7 @@ export function Profile() {
     investments: 0,
     totalProfit: 0,
     winRate: 0,
-    referrals: 0, // 🟢 Added Referral Count
+    referrals: 0,
   });
 
   const [profilePic, setProfilePic] = useState<string | null>(null);
@@ -656,23 +698,29 @@ export function Profile() {
     bio: "",
   });
 
-  // 1. FETCH REAL DATA (Markets + Profile)
+  // --- FETCH DATA ---
   useEffect(() => {
-    if (!address) return;
+    // 🟢 3. FIX FETCH LOGIC:
+    // Don't return if !address. Return if !activeAddress (we might be viewing someone while logged out)
+    if (!activeAddress) return;
 
     const fetchData = async () => {
       setLoading(true);
       try {
-        // A. Fetch Markets & Positions (Existing Logic)
-        const createdRes = await fetch(`${API_URL}/markets/created/${address}`);
+        // 🟢 CRITICAL: Use `activeAddress` in all fetch calls, NOT `address`
+
+        // A. Markets
+        const createdRes = await fetch(
+          `${API_URL}/markets/created/${activeAddress}`
+        );
         const createdData: ApiMarket[] = await createdRes.json();
         const myMarkets = createdData.map(mapMarketToPrediction);
         setCreatedMarkets(myMarkets);
 
+        // B. Investments
         const allMarketsRes = await fetch(`${API_URL}/markets`);
         const allMarketsData: ApiMarket[] = await allMarketsRes.json();
-
-        const posRes = await fetch(`${API_URL}/positions/${address}`);
+        const posRes = await fetch(`${API_URL}/positions/${activeAddress}`);
         const positionsData = await posRes.json();
 
         let calculatedProfit = 0;
@@ -682,21 +730,16 @@ export function Profile() {
               (m) => m.marketId === pos.marketId
             );
             if (!market) return null;
-
             const yesShares = Number(pos.yesShares);
             const noShares = Number(pos.noShares);
             if (yesShares === 0 && noShares === 0) return null;
-
             const currentValue =
               yesShares * market.yesPrice + noShares * market.noPrice;
             const cost = Number(pos.totalInvested || 0);
-            const pnl = currentValue - cost;
-
-            calculatedProfit += pnl;
-
+            calculatedProfit += currentValue - cost;
             return {
               ...mapMarketToPrediction(market),
-              pnl,
+              pnl: currentValue - cost,
               currentValue,
             };
           })
@@ -704,9 +747,8 @@ export function Profile() {
 
         setInvestments(myInvestments);
 
-        // 🟢 B. FETCH USER PROFILE FROM INDEXER
-        // This ensures you see what is actually on the blockchain/database
-        const userRes = await fetch(`${API_URL}/users/${address}`);
+        // C. Profile & Referrals
+        const userRes = await fetch(`${API_URL}/users/${activeAddress}`);
         const userData = await userRes.json();
 
         if (userData && !userData.error) {
@@ -715,24 +757,14 @@ export function Profile() {
             username: userData.username || "@user",
             bio: userData.bio || "No bio yet.",
           });
-          setProfilePic(userData.avatarUrl || null);
+          if (userData.avatarUrl) setProfilePic(userData.avatarUrl);
 
-          // 🟢 Update Stats with Referrals
           setStats({
             predictions: myMarkets.length,
             investments: myInvestments.length,
             totalProfit: Number(calculatedProfit.toFixed(2)),
             winRate: 68,
-            referrals: userData.referralCount || 0, // 🟢 Capture Referrals
-          });
-        } else {
-          // Fallback if user doesn't exist in DB yet
-          setStats({
-            predictions: myMarkets.length,
-            investments: myInvestments.length,
-            totalProfit: Number(calculatedProfit.toFixed(2)),
-            winRate: 0,
-            referrals: 0,
+            referrals: userData.referralCount || 0,
           });
         }
       } catch (error) {
@@ -741,43 +773,38 @@ export function Profile() {
         setLoading(false);
       }
     };
-
     fetchData();
-  }, [address]);
+  }, [activeAddress]); // 🟢 Depend on activeAddress
 
-  // 🟢 3. REAL SAVE HANDLER
+  // --- HANDLE SAVE ---
   const handleSave = async () => {
-    if (!address) return;
+    if (!address) return; // Must be logged in to save
     setSaving(true);
 
-    // A. Check for a referrer in LocalStorage (set by referral links)
     const storedReferrer = localStorage.getItem("starkzuri_referrer");
+    const finalAvatarUrl = profilePic || "";
 
-    // B. Call the Smart Contract
     const txHash = await updateProfile(
       formData.username,
       formData.displayName,
       formData.bio,
-      profilePic || "", // In production, upload this to IPFS first!
-      storedReferrer // Pass the referrer here
+      finalAvatarUrl,
+      storedReferrer
     );
 
     if (txHash) {
       setIsEditing(false);
-      // Optimistic update isn't needed as we rely on Indexer,
-      // but we can close the modal.
     }
     setSaving(false);
-  };
-
-  const handleCancel = () => {
-    setIsEditing(false);
-    // Ideally reload data from state to undo changes
   };
 
   const handleProfilePicChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 500000) {
+        toast.error("Image too large. Please use an image under 500KB.");
+        return;
+      }
       const reader = new FileReader();
       reader.onloadend = () => setProfilePic(reader.result as string);
       reader.readAsDataURL(file);
@@ -785,21 +812,21 @@ export function Profile() {
   };
 
   const copyToClipboard = () => {
-    if (address) {
-      navigator.clipboard.writeText(address);
+    if (activeAddress) {
+      navigator.clipboard.writeText(activeAddress);
       toast.success("Address copied!");
     }
   };
 
   const openExplorer = () => {
-    if (address) {
+    if (activeAddress) {
       const baseUrl = "https://sepolia.voyager.online/contract/";
-      window.open(`${baseUrl}${address}`, "_blank");
+      window.open(`${baseUrl}${activeAddress}`, "_blank");
     }
   };
 
-  const shortAddr = address
-    ? `${address.slice(0, 6)}...${address.slice(-4)}`
+  const shortAddr = activeAddress
+    ? `${activeAddress.slice(0, 6)}...${activeAddress.slice(-4)}`
     : "Not Connected";
 
   const currentLevel = {
@@ -816,7 +843,8 @@ export function Profile() {
     { id: "settings" as ProfileTab, label: "Settings", icon: Settings },
   ];
 
-  if (!address) {
+  // 🟢 4. UI GUARD: If no activeAddress is determined (and not connected), show prompt
+  if (!activeAddress) {
     return (
       <div className="w-full max-w-2xl mx-auto px-4 py-20 text-center">
         <div className="bg-[#0f0f1a] border border-[#1F87FC]/30 rounded-xl p-10 flex flex-col items-center">
@@ -835,31 +863,39 @@ export function Profile() {
       {/* HEADER */}
       <div className="bg-[#0f0f1a] border border-[#1F87FC]/30 rounded-xl p-4 md:p-6 mb-4 md:mb-6">
         <div className="flex justify-end mb-4">
-          {!isEditing ? (
-            <button
-              onClick={() => setIsEditing(true)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-[#1F87FC]/10 border border-[#1F87FC]/40 rounded-lg text-[#1F87FC] hover:bg-[#1F87FC]/20 transition-all text-xs md:text-sm"
-            >
-              <Edit className="w-3.5 h-3.5" />
-              Edit Profile
-            </button>
+          {/* 🟢 UI LOGIC: SHOW EDIT BUTTONS ONLY IF OWNING PROFILE */}
+          {isOwnProfile ? (
+            !isEditing ? (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="flex items-center gap-2 px-3 py-1.5 bg-[#1F87FC]/10 border border-[#1F87FC]/40 rounded-lg text-[#1F87FC] hover:bg-[#1F87FC]/20 transition-all text-xs md:text-sm"
+              >
+                <Edit className="w-3.5 h-3.5" />
+                Edit Profile
+              </button>
+            ) : (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setIsEditing(false)}
+                  disabled={saving}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-[#0a0a0f] border border-border rounded-lg text-muted-foreground hover:text-foreground transition-all text-xs md:text-sm"
+                >
+                  <X className="w-3.5 h-3.5" /> Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-[#1F87FC] border border-[#1F87FC] rounded-lg text-white hover:bg-[#1F87FC]/90 transition-all text-xs md:text-sm disabled:opacity-50"
+                >
+                  {saving && <Loader2 className="w-3 h-3 animate-spin" />}
+                  {saving ? "Saving..." : "Save"}
+                </button>
+              </div>
+            )
           ) : (
-            <div className="flex gap-2">
-              <button
-                onClick={handleCancel}
-                disabled={saving}
-                className="flex items-center gap-2 px-3 py-1.5 bg-[#0a0a0f] border border-border rounded-lg text-muted-foreground hover:text-foreground transition-all text-xs md:text-sm"
-              >
-                <X className="w-3.5 h-3.5" /> Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="flex items-center gap-2 px-3 py-1.5 bg-[#1F87FC] border border-[#1F87FC] rounded-lg text-white hover:bg-[#1F87FC]/90 transition-all text-xs md:text-sm disabled:opacity-50"
-              >
-                {saving && <Loader2 className="w-3 h-3 animate-spin" />}
-                {saving ? "Saving..." : "Save"}
-              </button>
+            // 🟢 UI LOGIC: SHOW 'SPECTATOR' BADGE IF VIEWING SOMEONE ELSE
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-[#1F87FC]/10 border border-[#1F87FC]/20 rounded-lg text-[#1F87FC] text-xs">
+              <Eye className="w-3.5 h-3.5" /> Viewing User
             </div>
           )}
         </div>
@@ -876,7 +912,8 @@ export function Profile() {
               <User className="w-8 h-8 md:w-10 md:h-10 text-white" />
             )}
 
-            {isEditing && (
+            {/* 🟢 UI LOGIC: Only allow photo upload if editing AND owning profile */}
+            {isEditing && isOwnProfile && (
               <>
                 <input
                   type="file"
@@ -894,6 +931,7 @@ export function Profile() {
               </>
             )}
 
+            {/* Level Badge (Unchanged) */}
             <div className="absolute -bottom-1 -right-1 bg-[#0a0a0f] border-2 border-[#1F87FC] rounded-full px-2 py-0.5 flex items-center gap-1 z-10">
               <Zap className="w-3 h-3 text-[#1F87FC]" />
               <span className="text-xs text-[#1F87FC]">
@@ -903,12 +941,14 @@ export function Profile() {
           </div>
 
           <div className="flex-1 min-w-0">
+            {/* 🟢 UI LOGIC: Only show Inputs if editing AND owning profile */}
             {!isEditing ? (
               <>
                 <div className="flex items-center gap-2 mb-1">
                   <h2 className="text-foreground text-lg md:text-xl font-bold">
-                    {formData.displayName || "Anonymous User"}
+                    {formData.displayName || "Anonymous"}
                   </h2>
+                  {/* Badge */}
                   <div className="px-2 py-0.5 bg-gradient-to-r from-[#1F87FC]/20 to-[#00ff88]/20 border border-[#1F87FC]/40 rounded text-xs flex items-center gap-1">
                     <span>{currentLevel.icon}</span>
                     <span style={{ color: currentLevel.color }}>
@@ -924,6 +964,7 @@ export function Profile() {
                 </p>
               </>
             ) : (
+              // EDIT MODE INPUTS
               <div className="space-y-3">
                 <input
                   type="text"
@@ -957,7 +998,7 @@ export function Profile() {
           </div>
         </div>
 
-        {/* Stats */}
+        {/* Stats (Unchanged) */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 border-t border-white/5 pt-4">
           <div className="text-center">
             <div className="text-xl md:text-2xl text-[#1F87FC] font-mono">
@@ -973,7 +1014,6 @@ export function Profile() {
           </div>
           <div className="text-center">
             <div className="text-xl md:text-2xl text-[#1F87FC] font-mono">
-              {/* 🟢 4. DISPLAY REAL REFERRALS */}
               {stats.referrals}
             </div>
             <div className="text-xs text-muted-foreground">Referrals</div>
@@ -989,6 +1029,7 @@ export function Profile() {
 
       {/* Financials (Unchanged) */}
       <div className="grid grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
+        {/* ... (Your existing Financials JSX) ... */}
         <div className="bg-[#0f0f1a] border border-[#00ff88]/30 rounded-lg p-4 md:p-5">
           <div className="flex items-center gap-2 mb-2">
             <TrendingUp className="w-4 h-4 text-[#00ff88]" />
@@ -1015,23 +1056,26 @@ export function Profile() {
 
       {/* Tabs */}
       <div className="flex gap-2 mb-4 md:mb-6 border-b border-border overflow-x-auto scrollbar-hide -mx-4 px-4">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-3 md:px-4 py-2 md:py-3 border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
-              activeTab === tab.id
-                ? "border-[#1F87FC] text-[#1F87FC]"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <tab.icon className="w-4 h-4" />
-            <span className="text-xs md:text-sm">{tab.label}</span>
-          </button>
-        ))}
+        {tabs
+          // 🟢 UI LOGIC: HIDE SETTINGS TAB IF VIEWING SOMEONE ELSE
+          .filter((tab) => isOwnProfile || tab.id !== "settings")
+          .map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-3 md:px-4 py-2 md:py-3 border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
+                activeTab === tab.id
+                  ? "border-[#1F87FC] text-[#1F87FC]"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <tab.icon className="w-4 h-4" />
+              <span className="text-xs md:text-sm">{tab.label}</span>
+            </button>
+          ))}
       </div>
 
-      {/* TAB CONTENT */}
+      {/* CONTENT */}
       <div>
         {loading ? (
           <div className="py-12 flex justify-center">
@@ -1039,7 +1083,7 @@ export function Profile() {
           </div>
         ) : (
           <>
-            {/* 1. CREATED MARKETS */}
+            {/* 1. CREATED MARKETS (Unchanged) */}
             {activeTab === "predictions" &&
               (createdMarkets.length > 0 ? (
                 <div className="grid grid-cols-2 gap-3 md:gap-4">
@@ -1083,7 +1127,7 @@ export function Profile() {
                 </div>
               ))}
 
-            {/* 2. INVESTMENTS */}
+            {/* 2. INVESTMENTS (Unchanged) */}
             {activeTab === "investments" &&
               (investments.length > 0 ? (
                 <div className="space-y-3">
@@ -1122,7 +1166,7 @@ export function Profile() {
                 </div>
               ))}
 
-            {/* 3. MEDIA GRID */}
+            {/* 3. MEDIA GRID (Unchanged) */}
             {activeTab === "media" &&
               (createdMarkets.length > 0 ? (
                 <div className="grid grid-cols-3 gap-2">
@@ -1150,7 +1194,8 @@ export function Profile() {
               ))}
 
             {/* 4. SETTINGS */}
-            {activeTab === "settings" && (
+            {/* 🟢 UI LOGIC: DEFENSIVE CODING - ONLY RENDER SETTINGS IF OWNING PROFILE */}
+            {activeTab === "settings" && isOwnProfile && (
               <div className="space-y-6 animate-in fade-in duration-300">
                 <div className="bg-[#0f0f1a] border border-[#1F87FC]/30 rounded-xl p-4">
                   <h3 className="text-sm font-medium text-muted-foreground mb-4 uppercase tracking-wider">
@@ -1182,7 +1227,7 @@ export function Profile() {
                   </div>
                 </div>
 
-                {/* Referral Link Section (New) */}
+                {/* Referral Link Section */}
                 <div className="bg-[#0f0f1a] border border-[#1F87FC]/30 rounded-xl p-4">
                   <h3 className="text-sm font-medium text-muted-foreground mb-4 uppercase tracking-wider">
                     Referral Link
@@ -1193,13 +1238,13 @@ export function Profile() {
                         Share this link to earn XP
                       </span>
                       <span className="font-mono text-xs text-white truncate">
-                        {window.location.origin}/?ref={address}
+                        {window.location.origin}/?ref={activeAddress}
                       </span>
                     </div>
                     <button
                       onClick={() => {
                         navigator.clipboard.writeText(
-                          `${window.location.origin}/?ref=${address}`
+                          `${window.location.origin}/?ref=${activeAddress}`
                         );
                         toast.success("Referral link copied!");
                       }}
