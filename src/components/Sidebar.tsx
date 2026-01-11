@@ -118,7 +118,7 @@ export function Sidebar({ activeScreen, onNavigate }: SidebarProps) {
           </div>
 
           {/* Stats (Your original design) */}
-          <div className="px-2 text-xs text-muted-foreground bg-[#1a1a24] p-3 rounded-lg border border-[#1F87FC]/10">
+          {/* <div className="px-2 text-xs text-muted-foreground bg-[#1a1a24] p-3 rounded-lg border border-[#1F87FC]/10">
             <div className="flex justify-between mb-1">
               <span>Active Markets</span>
               <span className="text-[#1F87FC]">1,248</span>
@@ -127,7 +127,7 @@ export function Sidebar({ activeScreen, onNavigate }: SidebarProps) {
               <span>24h Volume</span>
               <span className="text-[#1F87FC]">$2.4M</span>
             </div>
-          </div>
+          </div> */}
         </div>
       )}
     </div>
