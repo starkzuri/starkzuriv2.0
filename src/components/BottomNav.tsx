@@ -95,7 +95,7 @@ export function BottomNav({ activeScreen, onNavigate }: BottomNavProps) {
     { id: "create", icon: PlusCircle, label: "Create" },
     { id: "rewards", icon: Award, label: "Rewards" },
     // Added Portfolio since you are logged in
-    { id: "portfolio", icon: Wallet, label: "Wallet" },
+    { id: "portfolio", icon: Wallet, label: "portfolio" },
     { id: "profile", icon: User, label: "Profile" },
   ];
 
