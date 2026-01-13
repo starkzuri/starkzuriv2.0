@@ -95,7 +95,7 @@ export function Sidebar({ activeScreen, onNavigate }: SidebarProps) {
             <span>Sign Up</span>
           </button>
           <p className="text-xs text-center text-muted-foreground px-2 pt-2">
-            Connect your wallet to start trading predictions
+            Connect your wallet to start
           </p>
         </div>
       ) : (
