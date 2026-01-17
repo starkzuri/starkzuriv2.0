@@ -65,6 +65,30 @@ const formatAddress = (addr: string) => {
   return hex;
 };
 
+const calculatePayout = (investedAmount, price) => {
+  if (
+    !investedAmount ||
+    isNaN(investedAmount) ||
+    parseFloat(investedAmount) <= 0
+  )
+    return null;
+  const val = parseFloat(investedAmount);
+
+  // Logic: You buy shares at current price. If you win, each share is worth $1.
+  const shares = val / price;
+  const totalPayout = shares * 1;
+  const netProfit = totalPayout - val;
+  const roi = (netProfit / val) * 100;
+
+  return {
+    payout: totalPayout.toFixed(2),
+    profit: netProfit.toFixed(2),
+    roi: roi.toFixed(0),
+  };
+};
+
+// Calculate both sides in real-time based on the single 'amount' state
+
 export function MarketDetail({ marketId, onBack }: MarketDetailProps) {
   const { address } = useWallet();
   const [prediction, setPrediction] = useState<Prediction | null>(null);
@@ -158,7 +182,7 @@ export function MarketDetail({ marketId, onBack }: MarketDetailProps) {
 
         // --- Fetch History (unchanged) ---
         const historyRes = await fetch(
-          `${API_URL}/markets/${marketId}/history`
+          `${API_URL}/markets/${marketId}/history`,
         );
         if (historyRes.ok) {
           const historyData = await historyRes.json();
@@ -185,7 +209,7 @@ export function MarketDetail({ marketId, onBack }: MarketDetailProps) {
                 no: Number(data.noShares || data.no_shares || 0),
                 // 🟢 Capture the claimed status we added to DB earlier
                 hasClaimed: Boolean(
-                  data.hasClaimed || data.has_claimed || false
+                  data.hasClaimed || data.has_claimed || false,
                 ),
               });
             } else {
@@ -302,6 +326,9 @@ export function MarketDetail({ marketId, onBack }: MarketDetailProps) {
 
   console.log("prediction ends ", prediction.endsAt);
 
+  const yesData = calculatePayout(amount, prediction.yesPrice);
+  const noData = calculatePayout(amount, prediction.noPrice);
+
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-4 md:py-6 space-y-4 md:space-y-6">
       <button
@@ -381,45 +408,141 @@ export function MarketDetail({ marketId, onBack }: MarketDetailProps) {
           {/* 🟢 CONDITIONAL RENDER: TRADING VS RESOLUTION */}
           {isMarketActive ? (
             // --- TRADING INTERFACE ---
+            // <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            //   <div className="bg-[#1a1a24] border border-[#00ff88]/30 rounded-lg p-4">
+            //     <div className="flex justify-between mb-2">
+            //       <span className="text-[#00ff88] font-bold">YES</span>
+            //       <span className="text-2xl">
+            //         ${prediction.yesPrice.toFixed(4)}
+            //       </span>
+            //     </div>
+            //     <input
+            //       type="number"
+            //       value={amount}
+            //       onChange={(e) => setAmount(e.target.value)}
+            //       placeholder="Amount (USDC)"
+            //       className="w-full bg-black/50 border border-[#00ff88]/30 rounded p-2 mb-2 text-white"
+            //     />
+            //     <button
+            //       onClick={() => handleTrade(true)}
+            //       className="w-full bg-[#00ff88] text-black py-2 rounded font-bold hover:bg-[#00ff88]/90"
+            //     >
+            //       Buy YES
+            //     </button>
+            //   </div>
+            //   <div className="bg-[#1a1a24] border border-[#ff3366]/30 rounded-lg p-4">
+            //     <div className="flex justify-between mb-2">
+            //       <span className="text-[#ff3366] font-bold">NO</span>
+            //       <span className="text-2xl">
+            //         ${prediction.noPrice.toFixed(4)}
+            //       </span>
+            //     </div>
+            //     <input
+            //       type="number"
+            //       value={amount}
+            //       onChange={(e) => setAmount(e.target.value)}
+            //       placeholder="Amount (USDC)"
+            //       className="w-full bg-black/50 border border-[#ff3366]/30 rounded p-2 mb-2 text-white"
+            //     />
+            //     <button
+            //       onClick={() => handleTrade(false)}
+            //       className="w-full bg-[#ff3366] text-white py-2 rounded font-bold hover:bg-[#ff3366]/90"
+            //     >
+            //       Buy NO
+            //     </button>
+            //   </div>
+            // </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-[#1a1a24] border border-[#00ff88]/30 rounded-lg p-4">
-                <div className="flex justify-between mb-2">
-                  <span className="text-[#00ff88] font-bold">YES</span>
-                  <span className="text-2xl">
-                    ${prediction.yesPrice.toFixed(4)}
-                  </span>
+              {/* YES CARD */}
+              <div className="bg-[#1a1a24] border border-[#00ff88]/30 rounded-lg p-4 flex flex-col justify-between">
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-[#00ff88] font-bold">YES</span>
+                    <span className="text-2xl">
+                      ${prediction.yesPrice.toFixed(4)}
+                    </span>
+                  </div>
+                  <input
+                    type="number"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="Amount (USDC)"
+                    className="w-full bg-black/50 border border-[#00ff88]/30 rounded p-2 mb-2 text-white focus:outline-none focus:border-[#00ff88]"
+                  />
+
+                  {/* 🟢 NEW: Real-time Winnings Display */}
+                  <div className="mb-3 text-sm text-gray-400">
+                    {yesData ? (
+                      <div className="flex justify-between items-center bg-[#00ff88]/10 p-2 rounded border border-[#00ff88]/20">
+                        <span>Potential Payout:</span>
+                        <div className="text-right">
+                          <span className="text-white block font-mono">
+                            ${yesData.payout}
+                          </span>
+                          <span className="text-[#00ff88] text-xs">
+                            +{yesData.profit} ({yesData.roi}%)
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-2 text-xs opacity-50">
+                        Enter amount to see returns
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <input
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="Amount (USDC)"
-                  className="w-full bg-black/50 border border-[#00ff88]/30 rounded p-2 mb-2 text-white"
-                />
+
                 <button
                   onClick={() => handleTrade(true)}
-                  className="w-full bg-[#00ff88] text-black py-2 rounded font-bold hover:bg-[#00ff88]/90"
+                  className="w-full bg-[#00ff88] text-black py-2 rounded font-bold hover:bg-[#00ff88]/90 transition-colors"
                 >
                   Buy YES
                 </button>
               </div>
-              <div className="bg-[#1a1a24] border border-[#ff3366]/30 rounded-lg p-4">
-                <div className="flex justify-between mb-2">
-                  <span className="text-[#ff3366] font-bold">NO</span>
-                  <span className="text-2xl">
-                    ${prediction.noPrice.toFixed(4)}
-                  </span>
+
+              {/* NO CARD */}
+              <div className="bg-[#1a1a24] border border-[#ff3366]/30 rounded-lg p-4 flex flex-col justify-between">
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-[#ff3366] font-bold">NO</span>
+                    <span className="text-2xl">
+                      ${prediction.noPrice.toFixed(4)}
+                    </span>
+                  </div>
+                  <input
+                    type="number"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="Amount (USDC)"
+                    className="w-full bg-black/50 border border-[#ff3366]/30 rounded p-2 mb-2 text-white focus:outline-none focus:border-[#ff3366]"
+                  />
+
+                  {/* 🔴 NEW: Real-time Winnings Display */}
+                  <div className="mb-3 text-sm text-gray-400">
+                    {noData ? (
+                      <div className="flex justify-between items-center bg-[#ff3366]/10 p-2 rounded border border-[#ff3366]/20">
+                        <span>Potential Payout:</span>
+                        <div className="text-right">
+                          <span className="text-white block font-mono">
+                            ${noData.payout}
+                          </span>
+                          <span className="text-[#ff3366] text-xs">
+                            +{noData.profit} ({noData.roi}%)
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-2 text-xs opacity-50">
+                        Enter amount to see returns
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <input
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="Amount (USDC)"
-                  className="w-full bg-black/50 border border-[#ff3366]/30 rounded p-2 mb-2 text-white"
-                />
+
                 <button
                   onClick={() => handleTrade(false)}
-                  className="w-full bg-[#ff3366] text-white py-2 rounded font-bold hover:bg-[#ff3366]/90"
+                  className="w-full bg-[#ff3366] text-white py-2 rounded font-bold hover:bg-[#ff3366]/90 transition-colors"
                 >
                   Buy NO
                 </button>
