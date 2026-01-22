@@ -6,7 +6,7 @@ import { mapMarketToPrediction, ApiMarket } from "../lib/marketMapper";
 
 // 🟢 CONFIG
 const PAGE_SIZE = 5; // Load 5 at a time
-const API_URL = "https://starknet-indexer-apibara.onrender.com";
+const API_URL = "https://starknet-indexer-apibara-d7ss.onrender.com";
 
 interface HomeFeedProps {
   onViewMarket: (id: string) => void;
@@ -33,7 +33,7 @@ export function HomeFeed({ onViewMarket }: HomeFeedProps) {
     try {
       const offset = pageIndex * PAGE_SIZE;
       const res = await fetch(
-        `${API_URL}/markets?limit=${PAGE_SIZE}&offset=${offset}`
+        `${API_URL}/markets?limit=${PAGE_SIZE}&offset=${offset}`,
       );
       const data: ApiMarket[] = await res.json();
       const formattedData = data.map(mapMarketToPrediction);
@@ -81,7 +81,7 @@ export function HomeFeed({ onViewMarket }: HomeFeedProps) {
 
       if (node) observer.current.observe(node);
     },
-    [loading, hasMore]
+    [loading, hasMore],
   );
 
   // --- Handlers (Unchanged) ---
@@ -94,8 +94,8 @@ export function HomeFeed({ onViewMarket }: HomeFeedProps) {
               isLiked: !p.isLiked,
               likes: p.isLiked ? p.likes - 1 : p.likes + 1,
             }
-          : p
-      )
+          : p,
+      ),
     );
   };
 

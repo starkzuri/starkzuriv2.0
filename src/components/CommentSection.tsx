@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useWallet } from "../context/WalletContext";
 
 // Your Render Backend URL
-const API_URL = "https://starknet-indexer-apibara.onrender.com";
+const API_URL = "https://starknet-indexer-apibara-d7ss.onrender.com";
 
 export default function CommentsSection({ marketId }: { marketId: number }) {
   const [comments, setComments] = useState<any[]>([]);
