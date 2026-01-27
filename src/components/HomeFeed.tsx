@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { PredictionCard } from "./PredictionCard";
-import { Sparkles, Users, Loader2 } from "lucide-react";
+import { Sparkles, Users, Loader2, TrendingUp, Zap } from "lucide-react";
 import { Prediction } from "../types/prediction";
 import { mapMarketToPrediction, ApiMarket } from "../lib/marketMapper";
+import { motion, AnimatePresence } from "motion/react";
 
 // 🟢 CONFIG
 const PAGE_SIZE = 5; // Load 5 at a time
@@ -17,6 +18,7 @@ type FeedTab = "for-you" | "following";
 export function HomeFeed({ onViewMarket }: HomeFeedProps) {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [activeTab, setActiveTab] = useState<FeedTab>("for-you");
+  const [streakCount, setStreakCount] = useState(7); // Gamification: streak counter
 
   // 🟢 Pagination State
   const [page, setPage] = useState(0);
@@ -111,112 +113,246 @@ export function HomeFeed({ onViewMarket }: HomeFeedProps) {
   if (initialLoading) {
     return (
       <div className="w-full max-w-2xl mx-auto py-20 text-center">
-        <Sparkles className="w-10 h-10 text-[#1F87FC] animate-spin mx-auto mb-4" />
-        <p className="text-muted-foreground">Syncing with Starknet...</p>
+        <motion.div
+          animate={{
+            rotate: 360,
+            scale: [1, 1.2, 1],
+          }}
+          transition={{
+            rotate: { duration: 2, repeat: Infinity, ease: "linear" },
+            scale: { duration: 1, repeat: Infinity },
+          }}
+        >
+          <Sparkles className="w-10 h-10 text-[#1F87FC] mx-auto mb-4" />
+        </motion.div>
+        <motion.p
+          className="text-muted-foreground"
+          animate={{ opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+        >
+          Syncing with Starknet...
+        </motion.p>
       </div>
     );
   }
 
   return (
     <div className="w-full max-w-2xl mx-auto px-4 py-6 space-y-6 pb-20">
-      <div className="flex items-center gap-3 mb-6">
-        <Sparkles className="w-8 h-8 text-[#1F87FC]" />
-        <div>
-          <h1 className="text-foreground">Home</h1>
-          <p className="text-sm text-muted-foreground">
-            Your personalized feed
-          </p>
+      {/* Enhanced Header with Gamification */}
+      <motion.div
+        className="flex items-center justify-between mb-6"
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5, type: "spring" }}
+      >
+        <div className="flex items-center gap-3">
+          <motion.div
+            animate={{
+              rotate: [0, 10, -10, 0],
+              scale: [1, 1.1, 1],
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              repeatDelay: 3,
+            }}
+          >
+            <Sparkles className="w-8 h-8 text-[#1F87FC]" />
+          </motion.div>
+          <div>
+            <h1 className="text-foreground">Home</h1>
+            <p className="text-sm text-muted-foreground">
+              Your personalized feed
+            </p>
+          </div>
         </div>
-      </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 border-b border-border">
-        <button
+        {/* Streak Counter - Gamification */}
+        <motion.div
+          className="flex items-center gap-2 bg-gradient-to-r from-orange-500/20 to-yellow-500/20 border border-orange-500/40 rounded-full px-4 py-2"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <motion.div
+            animate={{
+              rotate: [0, 15, -15, 0],
+              scale: [1, 1.2, 1],
+            }}
+            transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
+          >
+            <Zap className="w-4 h-4 text-orange-400 fill-orange-400" />
+          </motion.div>
+          {/* <span className="text-sm font-bold text-orange-400">
+            {streakCount} Day Streak!
+          </span> */}
+        </motion.div>
+      </motion.div>
+
+      {/* Enhanced Tabs */}
+      <div className="flex gap-2 border-b border-border relative">
+        <motion.button
           onClick={() => setActiveTab("for-you")}
           className={`flex-1 pb-3 px-4 transition-all relative ${
             activeTab === "for-you"
               ? "text-[#1F87FC]"
               : "text-muted-foreground hover:text-foreground"
           }`}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
         >
           <div className="flex items-center justify-center gap-2">
-            <Sparkles className="w-4 h-4" />
+            <motion.div
+              animate={
+                activeTab === "for-you"
+                  ? {
+                      rotate: [0, 360],
+                      scale: [1, 1.2, 1],
+                    }
+                  : {}
+              }
+              transition={{ duration: 0.6 }}
+            >
+              <Sparkles className="w-4 h-4" />
+            </motion.div>
             <span>For You</span>
           </div>
           {activeTab === "for-you" && (
-            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#1F87FC]" />
+            <motion.div
+              className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[#1F87FC] to-transparent"
+              layoutId="activeTab"
+              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+            />
           )}
-        </button>
-        <button
+        </motion.button>
+        <motion.button
           onClick={() => setActiveTab("following")}
           className={`flex-1 pb-3 px-4 transition-all relative ${
             activeTab === "following"
               ? "text-[#1F87FC]"
               : "text-muted-foreground hover:text-foreground"
           }`}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
         >
           <div className="flex items-center justify-center gap-2">
             <Users className="w-4 h-4" />
             <span>Following</span>
           </div>
           {activeTab === "following" && (
-            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#1F87FC]" />
+            <motion.div
+              className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[#1F87FC] to-transparent"
+              layoutId="activeTab"
+              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+            />
           )}
-        </button>
+        </motion.button>
       </div>
 
       <div className="space-y-6">
         {getFilteredPredictions().length === 0 ? (
-          <div className="bg-[#0f0f1a] border border-[#1F87FC]/30 rounded-xl p-12 text-center">
-            <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <motion.div
+            className="bg-[#0f0f1a] border border-[#1F87FC]/30 rounded-xl p-12 text-center"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <motion.div
+              animate={{ y: [0, -10, 0] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            </motion.div>
             <h3 className="text-foreground mb-2">No markets found</h3>
             <p className="text-sm text-muted-foreground">
               Go to "Create" to launch the first market!
             </p>
-          </div>
+          </motion.div>
         ) : (
-          // 🟢 MAP THROUGH PREDICTIONS
+          // 🟢 Enhanced MAP with Staggered Animations
           getFilteredPredictions().map((prediction, index) => {
-            // If it's the LAST item, attach the Observer Ref
-            if (index === getFilteredPredictions().length - 1) {
-              return (
-                <div ref={lastElementRef} key={prediction.id}>
-                  <PredictionCard
-                    prediction={prediction}
-                    onLike={handleLike}
-                    onComment={handleComment}
-                    onRepost={handleRepost}
-                    onClick={() => onViewMarket(prediction.id)}
-                  />
-                </div>
-              );
-            }
+            const isLast = index === getFilteredPredictions().length - 1;
+
             return (
-              <PredictionCard
+              <motion.div
                 key={prediction.id}
-                prediction={prediction}
-                onLike={handleLike}
-                onComment={handleComment}
-                onRepost={handleRepost}
-                onClick={() => onViewMarket(prediction.id)}
-              />
+                ref={isLast ? lastElementRef : undefined}
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{
+                  duration: 0.4,
+                  delay: index * 0.1,
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 25,
+                }}
+                whileHover={{ scale: 1.02 }}
+              >
+                <PredictionCard
+                  prediction={prediction}
+                  onLike={handleLike}
+                  onComment={handleComment}
+                  onRepost={handleRepost}
+                  onClick={() => onViewMarket(prediction.id)}
+                />
+              </motion.div>
             );
           })
         )}
 
-        {/* 🟢 Bottom Loading Spinner */}
-        {loading && hasMore && (
-          <div className="py-4 flex justify-center">
-            <Loader2 className="w-6 h-6 animate-spin text-[#1F87FC]" />
-          </div>
-        )}
+        {/* 🟢 Enhanced Loading Spinner */}
+        <AnimatePresence>
+          {loading && hasMore && (
+            <motion.div
+              className="py-4 flex flex-col items-center gap-2"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              >
+                <Loader2 className="w-6 h-6 text-[#1F87FC]" />
+              </motion.div>
+              <motion.p
+                className="text-xs text-muted-foreground"
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              >
+                Loading more predictions...
+              </motion.p>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        {/* 🟢 End of Feed Message */}
-        {!hasMore && predictions.length > 0 && (
-          <div className="py-8 text-center text-xs text-muted-foreground">
-            You're all caught up! 🎉
-          </div>
-        )}
+        {/* 🟢 Enhanced End of Feed */}
+        <AnimatePresence>
+          {!hasMore && predictions.length > 0 && (
+            <motion.div
+              className="py-8 text-center"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <motion.div
+                animate={{
+                  rotate: [0, 10, -10, 0],
+                  scale: [1, 1.2, 1],
+                }}
+                transition={{ duration: 0.6 }}
+                className="inline-block mb-2"
+              >
+                <TrendingUp className="w-6 h-6 text-[#1F87FC] mx-auto" />
+              </motion.div>
+              <p className="text-xs text-muted-foreground">
+                You're all caught up! 🎉
+              </p>
+              <p className="text-xs text-muted-foreground/60 mt-1">
+                Come back later for more predictions
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

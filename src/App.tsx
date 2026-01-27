@@ -13,6 +13,7 @@ import { MarketDetail } from "./components/MarketDetail";
 import { Rewards } from "./components/Rewards";
 import { LoginModal } from "./components/LoginModal";
 import { toast } from "sonner";
+import { LiveActionFeed } from "./components/LiveActionFeed";
 
 type Screen =
   | "home"
@@ -140,6 +141,7 @@ export default function App() {
         <main className="flex-1 min-h-screen pb-20 lg:pb-0">
           <div className="max-w-7xl mx-auto">{renderScreen()}</div>
         </main>
+        {/* <LiveActionFeed /> */}
       </div>
 
       <BottomNav

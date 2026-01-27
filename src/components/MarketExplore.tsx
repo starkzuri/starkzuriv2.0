@@ -84,7 +84,7 @@ export function MarketExplore({ onViewMarket }: MarketExploreProps) {
         setInitialLoad(false);
       }
     },
-    [activeView, selectedCategory, searchQuery]
+    [activeView, selectedCategory, searchQuery],
   );
 
   // -------------------------------------------------------------------
@@ -121,7 +121,7 @@ export function MarketExplore({ onViewMarket }: MarketExploreProps) {
 
       if (node) observer.current.observe(node);
     },
-    [loading, hasMore, fetchMarkets]
+    [loading, hasMore, fetchMarkets],
   );
 
   const clearSearch = () => {
