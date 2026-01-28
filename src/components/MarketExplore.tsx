@@ -138,7 +138,7 @@ export function MarketExplore({ onViewMarket }: MarketExploreProps) {
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-4 py-6 space-y-6 pb-20">
+    <div className="w-full max-w-7xl mx-auto px-4 py-6 space-y-6 pb-20">
       {/* Header */}
       <div className="flex items-center gap-3">
         <TrendingUp className="w-6 h-6 md:w-8 md:h-8 text-[#1F87FC]" />
@@ -270,10 +270,10 @@ export function MarketExplore({ onViewMarket }: MarketExploreProps) {
         )}
       </div>
 
-      {/* Predictions Feed */}
-      <div className="space-y-4 md:space-y-6">
+      {/* Predictions Feed - Grid Layout */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {predictions.length === 0 && !loading ? (
-          <div className="bg-[#0f0f1a] border border-[#1F87FC]/30 rounded-xl p-8 md:p-12 text-center">
+          <div className="col-span-full bg-[#0f0f1a] border border-[#1F87FC]/30 rounded-xl p-8 md:p-12 text-center">
             <Search className="w-10 h-10 md:w-12 md:h-12 text-muted-foreground mx-auto mb-3 md:mb-4" />
             <h3 className="text-foreground mb-2 text-sm md:text-base">
               No predictions found
@@ -304,21 +304,21 @@ export function MarketExplore({ onViewMarket }: MarketExploreProps) {
             );
           })
         )}
-
-        {/* Loading Spinner at Bottom */}
-        {loading && hasMore && (
-          <div className="py-4 flex justify-center">
-            <Loader2 className="w-6 h-6 animate-spin text-[#1F87FC]" />
-          </div>
-        )}
-
-        {/* End of List */}
-        {!hasMore && predictions.length > 0 && (
-          <div className="py-4 text-center text-xs text-muted-foreground">
-            End of results
-          </div>
-        )}
       </div>
+
+      {/* Loading Spinner at Bottom */}
+      {loading && hasMore && (
+        <div className="py-4 flex justify-center">
+          <Loader2 className="w-6 h-6 animate-spin text-[#1F87FC]" />
+        </div>
+      )}
+
+      {/* End of List */}
+      {!hasMore && predictions.length > 0 && (
+        <div className="py-4 text-center text-xs text-muted-foreground">
+          End of results
+        </div>
+      )}
     </div>
   );
 }
