@@ -13,7 +13,7 @@ interface HomeFeedProps {
   onViewMarket: (id: string) => void;
 }
 
-type FeedTab = "for-you" | "following";
+type FeedTab = "for-you" | "active";
 
 export function HomeFeed({ onViewMarket }: HomeFeedProps) {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
@@ -106,7 +106,7 @@ export function HomeFeed({ onViewMarket }: HomeFeedProps) {
 
   // Filter Logic
   const getFilteredPredictions = () => {
-    if (activeTab === "following") return predictions.slice(0, 3); // Mock for now
+    if (activeTab === "active") return predictions.slice(0, 3); // Mock for now
     return predictions;
   };
 
@@ -225,9 +225,9 @@ export function HomeFeed({ onViewMarket }: HomeFeedProps) {
           )}
         </motion.button>
         <motion.button
-          onClick={() => setActiveTab("following")}
+          onClick={() => setActiveTab("active")}
           className={`flex-1 pb-3 px-4 transition-all relative ${
-            activeTab === "following"
+            activeTab === "active"
               ? "text-[#1F87FC]"
               : "text-muted-foreground hover:text-foreground"
           }`}
@@ -236,9 +236,9 @@ export function HomeFeed({ onViewMarket }: HomeFeedProps) {
         >
           <div className="flex items-center justify-center gap-2">
             <Users className="w-4 h-4" />
-            <span>Following</span>
+            <span>active</span>
           </div>
-          {activeTab === "following" && (
+          {activeTab === "active" && (
             <motion.div
               className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[#1F87FC] to-transparent"
               layoutId="activeTab"
