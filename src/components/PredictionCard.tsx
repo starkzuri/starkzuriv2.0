@@ -10,7 +10,7 @@ import {
   Zap,
 } from "lucide-react";
 import { Prediction } from "../types/prediction";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 // 🟢 Import the smart component
 import { MediaPreview } from "./MediaPreview";
@@ -36,6 +36,16 @@ export function PredictionCard({
   const [particles, setParticles] = useState<
     { id: number; x: number; y: number }[]
   >([]);
+  const [, setTick] = useState(0);
+
+  // Force re-render every second to update progress
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTick((prev) => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const getTimeRemaining = () => {
     const now = new Date();
@@ -91,18 +101,18 @@ export function PredictionCard({
 
   // Helper to check if market is complete
   const isMarketComplete = () => {
-    return getTimeRemaining() === "Ended" || getTimeProgress() >= 99;
+    return getTimeRemaining() === "Ended" || getTimeProgress() >= 100;
   };
 
   // 🎮 GAMIFIED INTERVAL SYSTEM - Returns intensity level based on 20% intervals
   const getProgressInterval = () => {
     const progress = getTimeProgress();
-    if (progress < 20) return 0; // 0-20%: Chill
-    if (progress < 40) return 1; // 20-40%: Warming up
-    if (progress < 60) return 2; // 40-60%: Getting serious
-    if (progress < 80) return 3; // 60-80%: High stakes
-    if (progress < 100) return 4; // 80-100%: CRITICAL
-    return 5; // 100%: Complete
+    if (progress >= 100) return 5; // 100%: Complete
+    if (progress >= 80) return 4; // 80-100%: CRITICAL
+    if (progress >= 60) return 3; // 60-80%: High stakes
+    if (progress >= 40) return 2; // 40-60%: Getting serious
+    if (progress >= 20) return 1; // 20-40%: Warming up
+    return 0; // 0-20%: Chill
   };
 
   // 🎨 Get theme based on interval
@@ -169,6 +179,8 @@ export function PredictionCard({
 
   const theme = getIntervalTheme();
   const interval = getProgressInterval();
+  const timeProgress = getTimeProgress();
+  const marketComplete = isMarketComplete();
 
   return (
     <motion.div
@@ -191,7 +203,7 @@ export function PredictionCard({
       />
 
       {/* 🎮 ADRENALINE BORDER PULSE - Intensifies by interval */}
-      {!isMarketComplete() && interval >= 2 && (
+      {!marketComplete && interval >= 2 && (
         <motion.div
           className="absolute inset-0 rounded-xl pointer-events-none z-0"
           animate={{
@@ -335,7 +347,7 @@ export function PredictionCard({
             <motion.span
               className="text-lg"
               animate={
-                !isMarketComplete() && interval >= 3
+                !marketComplete && interval >= 3
                   ? {
                       scale: [1, 1.3, 1],
                       rotate: [0, interval >= 4 ? 20 : 10, 0],
@@ -354,7 +366,7 @@ export function PredictionCard({
             </span>
 
             {/* 🎮 ADRENALINE INDICATOR - Shows at high intervals */}
-            {!isMarketComplete() && interval >= 3 && (
+            {!marketComplete && interval >= 3 && (
               <motion.div
                 className="ml-auto flex items-center gap-1 px-2 py-0.5 bg-red-500/20 border border-red-500/40 rounded-full"
                 animate={{
@@ -378,40 +390,71 @@ export function PredictionCard({
             )}
           </div>
 
-          <div className="h-2 bg-white/5 rounded-full overflow-hidden relative">
-            {/* Interval-based pulsing background - ONLY FOR LIVE MARKETS */}
-            {!isMarketComplete() && interval >= 2 && theme.pulseSpeed > 0 && (
-              <motion.div
-                className={`absolute inset-0 bg-gradient-to-r ${
-                  interval >= 4
-                    ? "from-red-500/20 via-red-600/30 to-red-500/20"
-                    : interval >= 3
-                      ? "from-orange-500/20 via-red-500/20 to-orange-500/20"
-                      : "from-purple-500/20 via-pink-500/20 to-purple-500/20"
-                }`}
-                animate={{
-                  opacity: [0.3, 0.7, 0.3],
-                  scale: [1, 1.02, 1],
-                }}
-                transition={{
-                  duration: theme.pulseSpeed,
-                  repeat: Infinity,
-                }}
-              />
-            )}
-
-            {/* Main progress bar */}
-            <div
+          <div className="h-2 bg-black/40 rounded-full overflow-hidden relative border border-white/10">
+            {/* Main progress bar with diagonal stripe animation */}
+            <motion.div
               className={`h-full relative bg-gradient-to-r ${theme.gradient}`}
-              style={{
-                width: `${getTimeProgress()}%`,
-                boxShadow: isMarketComplete()
-                  ? "none"
-                  : `0 0 10px ${theme.glow}`,
+              initial={{ width: "0%" }}
+              animate={{
+                width: `${timeProgress}%`,
+              }}
+              transition={{
+                width: {
+                  duration: 0.5,
+                  ease: "easeOut",
+                },
               }}
             >
+              {/* Animated diagonal stripes overlay - pump.fun style */}
+              {!marketComplete && (
+                <motion.div
+                  className="absolute inset-0 h-full"
+                  style={{
+                    backgroundImage: `repeating-linear-gradient(
+                      45deg,
+                      transparent,
+                      transparent 10px,
+                      rgba(255, 255, 255, 0.15) 10px,
+                      rgba(255, 255, 255, 0.15) 20px
+                    )`,
+                    backgroundSize: "200% 200%",
+                  }}
+                  animate={{
+                    backgroundPosition: ["0% 0%", "100% 100%"],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "linear",
+                  }}
+                />
+              )}
+
+              {/* Bright edge highlight - "alive" indicator */}
+              {!marketComplete && (
+                <motion.div
+                  className="absolute right-0 top-0 bottom-0 w-1"
+                  animate={{
+                    opacity: [0.6, 1, 0.6],
+                    boxShadow: [
+                      `0 0 5px ${theme.glow}`,
+                      `0 0 15px ${theme.glow}`,
+                      `0 0 5px ${theme.glow}`,
+                    ],
+                  }}
+                  transition={{
+                    duration: 1.5,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                  style={{
+                    background: "rgba(255, 255, 255, 0.9)",
+                  }}
+                />
+              )}
+
               {/* Animated shimmer effect - Speed varies by interval */}
-              {!isMarketComplete() && theme.shimmerSpeed > 0 && (
+              {!marketComplete && theme.shimmerSpeed > 0 && (
                 <motion.div
                   className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
                   animate={{ x: ["-100%", "100%"] }}
@@ -424,7 +467,7 @@ export function PredictionCard({
               )}
 
               {/* 🎮 GAMIFIED PARTICLE EFFECTS - Increase by interval */}
-              {!isMarketComplete() && interval >= 2 && (
+              {!marketComplete && interval >= 2 && (
                 <>
                   {[...Array(interval >= 4 ? 6 : interval >= 3 ? 4 : 3)].map(
                     (_, i) => (
@@ -452,7 +495,7 @@ export function PredictionCard({
               )}
 
               {/* 🎮 LIGHTNING BOLTS for CRITICAL state */}
-              {!isMarketComplete() && interval >= 4 && (
+              {!marketComplete && interval >= 4 && (
                 <>
                   {[...Array(2)].map((_, i) => (
                     <motion.div
@@ -477,15 +520,15 @@ export function PredictionCard({
                   ))}
                 </>
               )}
-            </div>
+            </motion.div>
           </div>
 
           {/* Dynamic text with interval-based styling */}
           <div className="flex justify-between items-center text-xs mt-1">
             <span className={`font-medium ${theme.text}`}>
-              {isMarketComplete() ? "Market Closed" : "Market Progress"}
+              {marketComplete ? "Market Closed" : "Market Progress"}
               {/* Interval-based animations */}
-              {!isMarketComplete() && interval >= 4 && (
+              {!marketComplete && interval >= 4 && (
                 <motion.span
                   className="ml-2 inline-block"
                   animate={{ opacity: [0, 1, 0] }}
@@ -494,7 +537,7 @@ export function PredictionCard({
                   ⚡
                 </motion.span>
               )}
-              {!isMarketComplete() && interval === 3 && (
+              {!marketComplete && interval === 3 && (
                 <motion.span
                   className="ml-2 inline-block"
                   animate={{ opacity: [0.5, 1, 0.5] }}
@@ -508,7 +551,7 @@ export function PredictionCard({
             <motion.span
               className={`font-bold font-mono ${theme.text}`}
               animate={
-                !isMarketComplete() && interval >= 3
+                !marketComplete && interval >= 3
                   ? {
                       scale: [1, 1.15, 1],
                     }
@@ -519,9 +562,7 @@ export function PredictionCard({
                 repeat: Infinity,
               }}
             >
-              {isMarketComplete()
-                ? "ENDED"
-                : `${getTimeProgress().toFixed(0)}%`}
+              {marketComplete ? "ENDED" : `${timeProgress.toFixed(0)}%`}
             </motion.span>
           </div>
         </div>
@@ -531,23 +572,23 @@ export function PredictionCard({
           {/* BUY YES */}
           <motion.button
             onClick={handleBuy}
-            disabled={isMarketComplete()}
+            disabled={marketComplete}
             className={`bg-gradient-to-br from-[#00ff88]/10 to-transparent border border-[#00ff88]/30 rounded-lg p-3 transition-all duration-300 group/btn relative overflow-hidden ${
-              isMarketComplete()
+              marketComplete
                 ? "opacity-60 cursor-not-allowed"
                 : "hover:border-[#00ff88] hover:bg-[#00ff88]/10"
             }`}
             whileHover={
-              !isMarketComplete()
+              !marketComplete
                 ? {
                     scale: 1.05,
                     boxShadow: "0 0 20px rgba(0, 255, 136, 0.3)",
                   }
                 : {}
             }
-            whileTap={!isMarketComplete() ? { scale: 0.95 } : {}}
+            whileTap={!marketComplete ? { scale: 0.95 } : {}}
             animate={
-              !isMarketComplete() && prediction.yesPrice > 0.5
+              !marketComplete && prediction.yesPrice > 0.5
                 ? {
                     borderColor: [
                       "rgba(0, 255, 136, 0.3)",
@@ -566,7 +607,7 @@ export function PredictionCard({
             }}
           >
             {/* Shimmer Effect - only on live markets */}
-            {!isMarketComplete() && (
+            {!marketComplete && (
               <motion.div
                 className="absolute inset-0 bg-gradient-to-r from-transparent via-[#00ff88]/20 to-transparent"
                 animate={{ x: ["-100%", "100%"] }}
@@ -575,7 +616,7 @@ export function PredictionCard({
             )}
 
             {/* Pulse effect for high probability */}
-            {!isMarketComplete() && prediction.yesPrice > 0.7 && (
+            {!marketComplete && prediction.yesPrice > 0.7 && (
               <motion.div
                 className="absolute inset-0 bg-[#00ff88]/5 rounded-lg"
                 animate={{
@@ -593,7 +634,7 @@ export function PredictionCard({
             <div className="relative z-10 text-left">
               <div
                 className={`text-xs mb-1 font-bold tracking-wide transition-colors ${
-                  isMarketComplete()
+                  marketComplete
                     ? "text-muted-foreground"
                     : "text-muted-foreground group-hover/btn:text-[#00ff88]"
                 }`}
@@ -603,9 +644,9 @@ export function PredictionCard({
               <div className="flex items-end justify-between">
                 <motion.div
                   className="text-2xl font-bold text-[#00ff88]"
-                  whileHover={!isMarketComplete() ? { scale: 1.1 } : {}}
+                  whileHover={!marketComplete ? { scale: 1.1 } : {}}
                   animate={
-                    !isMarketComplete() && prediction.yesPrice > 0.7
+                    !marketComplete && prediction.yesPrice > 0.7
                       ? {
                           scale: [1, 1.05, 1],
                         }
@@ -627,7 +668,7 @@ export function PredictionCard({
             </div>
 
             {/* "CLOSED" overlay for completed markets */}
-            {isMarketComplete() && (
+            {marketComplete && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] rounded-lg">
                 <span className="text-xs font-bold text-white/60 tracking-wider">
                   CLOSED
@@ -639,23 +680,23 @@ export function PredictionCard({
           {/* BUY NO */}
           <motion.button
             onClick={handleBuy}
-            disabled={isMarketComplete()}
+            disabled={marketComplete}
             className={`bg-gradient-to-br from-[#ff3366]/10 to-transparent border border-[#ff3366]/30 rounded-lg p-3 transition-all duration-300 group/btn relative overflow-hidden ${
-              isMarketComplete()
+              marketComplete
                 ? "opacity-60 cursor-not-allowed"
                 : "hover:border-[#ff3366] hover:bg-[#ff3366]/10"
             }`}
             whileHover={
-              !isMarketComplete()
+              !marketComplete
                 ? {
                     scale: 1.05,
                     boxShadow: "0 0 20px rgba(255, 51, 102, 0.3)",
                   }
                 : {}
             }
-            whileTap={!isMarketComplete() ? { scale: 0.95 } : {}}
+            whileTap={!marketComplete ? { scale: 0.95 } : {}}
             animate={
-              !isMarketComplete() && prediction.noPrice > 0.5
+              !marketComplete && prediction.noPrice > 0.5
                 ? {
                     borderColor: [
                       "rgba(255, 51, 102, 0.3)",
@@ -674,7 +715,7 @@ export function PredictionCard({
             }}
           >
             {/* Shimmer Effect - only on live markets */}
-            {!isMarketComplete() && (
+            {!marketComplete && (
               <motion.div
                 className="absolute inset-0 bg-gradient-to-r from-transparent via-[#ff3366]/20 to-transparent"
                 animate={{ x: ["-100%", "100%"] }}
@@ -683,7 +724,7 @@ export function PredictionCard({
             )}
 
             {/* Pulse effect for high probability */}
-            {!isMarketComplete() && prediction.noPrice > 0.7 && (
+            {!marketComplete && prediction.noPrice > 0.7 && (
               <motion.div
                 className="absolute inset-0 bg-[#ff3366]/5 rounded-lg"
                 animate={{
@@ -701,7 +742,7 @@ export function PredictionCard({
             <div className="relative z-10 text-left">
               <div
                 className={`text-xs mb-1 font-bold tracking-wide transition-colors ${
-                  isMarketComplete()
+                  marketComplete
                     ? "text-muted-foreground"
                     : "text-muted-foreground group-hover/btn:text-[#ff3366]"
                 }`}
@@ -711,9 +752,9 @@ export function PredictionCard({
               <div className="flex items-end justify-between">
                 <motion.div
                   className="text-2xl font-bold text-[#ff3366]"
-                  whileHover={!isMarketComplete() ? { scale: 1.1 } : {}}
+                  whileHover={!marketComplete ? { scale: 1.1 } : {}}
                   animate={
-                    !isMarketComplete() && prediction.noPrice > 0.7
+                    !marketComplete && prediction.noPrice > 0.7
                       ? {
                           scale: [1, 1.05, 1],
                         }
@@ -735,7 +776,7 @@ export function PredictionCard({
             </div>
 
             {/* "CLOSED" overlay for completed markets */}
-            {isMarketComplete() && (
+            {marketComplete && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] rounded-lg">
                 <span className="text-xs font-bold text-white/60 tracking-wider">
                   CLOSED
