@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Calendar, Tag, Loader2, LogIn } from "lucide-react";
 import { useWallet } from "../context/WalletContext";
-import { toast } from "sonner";
+import { toast, Toaster } from "sonner";
 import { CallData, RpcProvider, byteArray } from "starknet";
 // 🟢 Import the new component
 import { MediaUploader } from "./MediaUploader";
@@ -83,7 +83,7 @@ export function CreatePrediction() {
           onClick: () =>
             window.open(
               `https://sepolia.voyager.online/tx/${tx.transaction_hash}`,
-              "_blank"
+              "_blank",
             ),
         },
       });
@@ -127,6 +127,11 @@ export function CreatePrediction() {
 
   return (
     <div className="w-full max-w-2xl mx-auto px-4 py-6 pb-24">
+      <Toaster
+        position="top-right"
+        richColors
+        theme="dark" // or "light" depending on your theme
+      />
       <div className="bg-[#0f0f1a] border border-[#1F87FC]/30 rounded-xl p-6">
         <h2 className="text-foreground mb-6 text-xl font-bold">
           Create Prediction
