@@ -10,8 +10,11 @@ import {
 import { PredictionCard } from "./PredictionCard";
 import { Prediction } from "../types/prediction";
 import { mapMarketToPrediction, ApiMarket } from "../lib/marketMapper";
+// 🟢 1. NEW IMPORTS
+import { useWallet } from "../context/WalletContext";
+import { toast } from "sonner";
 
-// 🟢 CONFIG
+// CONFIG
 const PAGE_SIZE = 6;
 const API_URL = import.meta.env.VITE_INDEXER_SERVER_URL;
 
@@ -22,26 +25,27 @@ interface MarketExploreProps {
 }
 
 export function MarketExplore({ onViewMarket }: MarketExploreProps) {
+  // 🟢 2. GET WALLET ADDRESS
+  const { address } = useWallet();
+
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // 🟢 Filters
+  // Filters
   const [activeView, setActiveView] = useState<MarketView>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
-  // 🟢 Pagination State
+  // Pagination State
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [initialLoad, setInitialLoad] = useState(true);
 
   const categories = ["all", "Crypto", "Tech", "Sports", "Space", "Politics"];
-
-  // 🟢 Observer for Infinite Scroll
   const observer = useRef<IntersectionObserver | null>(null);
 
   // -------------------------------------------------------------------
-  // 1. FETCH FUNCTION (Accepts page + current filter state)
+  // FETCH FUNCTION
   // -------------------------------------------------------------------
   const fetchMarkets = useCallback(
     async (pageIndex: number, resetList = false) => {
@@ -49,14 +53,18 @@ export function MarketExplore({ onViewMarket }: MarketExploreProps) {
       try {
         const offset = pageIndex * PAGE_SIZE;
 
-        // Construct Query Params based on state
+        // 🟢 3. INCLUDE USER PARAM (for isLiked status)
         const params = new URLSearchParams({
           limit: PAGE_SIZE.toString(),
           offset: offset.toString(),
-          sort: activeView === "all" ? "new" : activeView, // map "all" to "new"
+          sort: activeView === "all" ? "new" : activeView,
           category: selectedCategory,
           search: searchQuery,
         });
+
+        if (address) {
+          params.append("user", address);
+        }
 
         const res = await fetch(`${API_URL}/markets?${params}`);
         const data: ApiMarket[] = await res.json();
@@ -64,19 +72,12 @@ export function MarketExplore({ onViewMarket }: MarketExploreProps) {
 
         setPredictions((prev) => {
           if (resetList) return formattedData;
-
-          // Dedup logic for infinite scroll
           const existingIds = new Set(prev.map((p) => p.id));
           const uniqueNew = formattedData.filter((p) => !existingIds.has(p.id));
           return [...prev, ...uniqueNew];
         });
 
-        // Check if we reached the end
-        if (formattedData.length < PAGE_SIZE) {
-          setHasMore(false);
-        } else {
-          setHasMore(true);
-        }
+        setHasMore(formattedData.length >= PAGE_SIZE);
       } catch (error) {
         console.error("Failed to fetch markets:", error);
       } finally {
@@ -84,25 +85,72 @@ export function MarketExplore({ onViewMarket }: MarketExploreProps) {
         setInitialLoad(false);
       }
     },
-    [activeView, selectedCategory, searchQuery],
+    // 🟢 Add address to dependency array so it refetches on login
+    [activeView, selectedCategory, searchQuery, address],
   );
 
   // -------------------------------------------------------------------
-  // 2. EFFECT: Handle Filter Changes (Reset & Refetch)
+  // EFFECT: Handle Filter Changes & Login
   // -------------------------------------------------------------------
   useEffect(() => {
-    // When filters change, reset everything and fetch Page 0
     setPage(0);
     setHasMore(true);
-    // Debounce search slightly to avoid spamming
     const timer = setTimeout(() => {
       fetchMarkets(0, true);
     }, 300);
     return () => clearTimeout(timer);
-  }, [activeView, selectedCategory, searchQuery, fetchMarkets]);
+  }, [activeView, selectedCategory, searchQuery, address, fetchMarkets]);
 
   // -------------------------------------------------------------------
-  // 3. INFINITE SCROLL TRIGGER
+  // 🟢 4. SOCIAL HANDLERS (Copied from HomeFeed)
+  // -------------------------------------------------------------------
+  const handleLike = async (id: string) => {
+    if (!address) return toast.error("Connect wallet to like!");
+
+    setPredictions((prev) =>
+      prev.map((p) =>
+        p.id === id
+          ? {
+              ...p,
+              isLiked: !p.isLiked,
+              likes: p.isLiked ? p.likes - 1 : p.likes + 1,
+            }
+          : p,
+      ),
+    );
+
+    try {
+      await fetch(`${API_URL}/social/like`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user: address, marketId: id }),
+      });
+    } catch (e) {
+      toast.error("Failed to save like");
+    }
+  };
+
+  const handleRepost = async (id: string) => {
+    if (!address) return toast.error("Connect wallet to repost!");
+
+    setPredictions((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, reposts: p.reposts + 1 } : p)),
+    );
+
+    try {
+      await fetch(`${API_URL}/social/repost`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user: address, marketId: id }),
+      });
+      toast.success("Reposted!");
+    } catch (e) {
+      toast.error("Failed to repost");
+    }
+  };
+
+  // -------------------------------------------------------------------
+  // INFINITE SCROLL
   // -------------------------------------------------------------------
   const lastElementRef = useCallback(
     (node: HTMLDivElement) => {
@@ -139,6 +187,8 @@ export function MarketExplore({ onViewMarket }: MarketExploreProps) {
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 py-6 space-y-6 pb-20">
+      {/* ... (Header, Search, Filters remain exactly the same) ... */}
+
       {/* Header */}
       <div className="flex items-center gap-3">
         <TrendingUp className="w-6 h-6 md:w-8 md:h-8 text-[#1F87FC]" />
@@ -270,7 +320,7 @@ export function MarketExplore({ onViewMarket }: MarketExploreProps) {
         )}
       </div>
 
-      {/* Predictions Feed - Grid Layout */}
+      {/* Predictions Feed */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {predictions.length === 0 && !loading ? (
           <div className="col-span-full bg-[#0f0f1a] border border-[#1F87FC]/30 rounded-xl p-8 md:p-12 text-center">
@@ -284,29 +334,27 @@ export function MarketExplore({ onViewMarket }: MarketExploreProps) {
           </div>
         ) : (
           predictions.map((prediction, index) => {
-            // Attach Observer to Last Element
-            if (index === predictions.length - 1) {
-              return (
-                <div ref={lastElementRef} key={prediction.id}>
-                  <PredictionCard
-                    prediction={prediction}
-                    onClick={() => onViewMarket(prediction.id)}
-                  />
-                </div>
-              );
-            }
+            const isLast = index === predictions.length - 1;
             return (
-              <PredictionCard
+              <div
+                ref={isLast ? lastElementRef : undefined}
                 key={prediction.id}
-                prediction={prediction}
-                onClick={() => onViewMarket(prediction.id)}
-              />
+              >
+                <PredictionCard
+                  prediction={prediction}
+                  onClick={() => onViewMarket(prediction.id)}
+                  // 🟢 5. PASS HANDLERS
+                  onLike={() => handleLike(prediction.id)}
+                  onRepost={() => handleRepost(prediction.id)}
+                  onComment={() => onViewMarket(prediction.id)}
+                />
+              </div>
             );
           })
         )}
       </div>
 
-      {/* Loading Spinner at Bottom */}
+      {/* Loading Spinner */}
       {loading && hasMore && (
         <div className="py-4 flex justify-center">
           <Loader2 className="w-6 h-6 animate-spin text-[#1F87FC]" />
