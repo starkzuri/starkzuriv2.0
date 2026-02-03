@@ -106,6 +106,7 @@ export function PredictionCard({
     e.stopPropagation();
     setShowLikeAnimation(true);
     setTimeout(() => setShowLikeAnimation(false), 1000);
+    // console.log(prediction);
 
     // Create particles effect
     const newParticles = Array.from({ length: 8 }, (_, i) => ({

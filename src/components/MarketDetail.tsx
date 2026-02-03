@@ -25,6 +25,7 @@ import { useWallet } from "../context/WalletContext";
 import { ResolutionPanel } from "./ResolutionPanel"; // 🟢 Correctly Imported
 import { MediaPreview } from "./MediaPreview";
 import CommentsSection from "./CommentSection";
+import { toast, Toaster } from "sonner";
 
 interface MarketDetailProps {
   marketId: string;
@@ -386,9 +387,12 @@ export function MarketDetail({ marketId, onBack }: MarketDetailProps) {
               </div>
             </div>
             <div className="bg-[#1a1a24] rounded-lg p-3">
-              <div className="text-xs text-muted-foreground">Global Shares</div>
+              <div className="text-xs text-muted-foreground">total Shares</div>
               <div className="text-xl text-white">
-                {formatNumber(prediction.yesShares + prediction.noShares)}
+                {formatNumber(
+                  Number(prediction.yesShares.toFixed(4)) +
+                    Number(prediction.noShares.toFixed(4)),
+                )}
               </div>
             </div>
             <div className="bg-[#1a1a24] rounded-lg p-3 border border-[#00ff88]/20">
@@ -407,52 +411,6 @@ export function MarketDetail({ marketId, onBack }: MarketDetailProps) {
 
           {/* 🟢 CONDITIONAL RENDER: TRADING VS RESOLUTION */}
           {isMarketActive ? (
-            // --- TRADING INTERFACE ---
-            // <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            //   <div className="bg-[#1a1a24] border border-[#00ff88]/30 rounded-lg p-4">
-            //     <div className="flex justify-between mb-2">
-            //       <span className="text-[#00ff88] font-bold">YES</span>
-            //       <span className="text-2xl">
-            //         ${prediction.yesPrice.toFixed(4)}
-            //       </span>
-            //     </div>
-            //     <input
-            //       type="number"
-            //       value={amount}
-            //       onChange={(e) => setAmount(e.target.value)}
-            //       placeholder="Amount (USDC)"
-            //       className="w-full bg-black/50 border border-[#00ff88]/30 rounded p-2 mb-2 text-white"
-            //     />
-            //     <button
-            //       onClick={() => handleTrade(true)}
-            //       className="w-full bg-[#00ff88] text-black py-2 rounded font-bold hover:bg-[#00ff88]/90"
-            //     >
-            //       Buy YES
-            //     </button>
-            //   </div>
-            //   <div className="bg-[#1a1a24] border border-[#ff3366]/30 rounded-lg p-4">
-            //     <div className="flex justify-between mb-2">
-            //       <span className="text-[#ff3366] font-bold">NO</span>
-            //       <span className="text-2xl">
-            //         ${prediction.noPrice.toFixed(4)}
-            //       </span>
-            //     </div>
-            //     <input
-            //       type="number"
-            //       value={amount}
-            //       onChange={(e) => setAmount(e.target.value)}
-            //       placeholder="Amount (USDC)"
-            //       className="w-full bg-black/50 border border-[#ff3366]/30 rounded p-2 mb-2 text-white"
-            //     />
-            //     <button
-            //       onClick={() => handleTrade(false)}
-            //       className="w-full bg-[#ff3366] text-white py-2 rounded font-bold hover:bg-[#ff3366]/90"
-            //     >
-            //       Buy NO
-            //     </button>
-            //   </div>
-            // </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* YES CARD */}
               <div className="bg-[#1a1a24] border border-[#00ff88]/30 rounded-lg p-4 flex flex-col justify-between">

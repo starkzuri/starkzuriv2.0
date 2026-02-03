@@ -15,6 +15,13 @@ export interface ApiMarket {
   noShares: number;
   totalVolume: number;
   endTime: number; // Changed to number
+  creatorUsername?: string | null;
+  creatorDisplayName?: string | null;
+  creatorAvatar?: string | null;
+  commentCount?: number;
+  likeCount?: number;
+  repostCount?: number;
+  isLikedByCurrentUser?: boolean;
 }
 
 // 🟢 NEW: Centralized Logic (The "Brain")
@@ -28,7 +35,7 @@ export function mapMarketToPrediction(market: ApiMarket): Prediction {
     mediaUrl = mediaStr.replace(
       "ipfs://",
       import.meta.env.VITE_PINATA_GATEWAY_URL ||
-        "https://gateway.pinata.cloud/ipfs/"
+        "https://gateway.pinata.cloud/ipfs/",
     );
   } else if (!mediaStr) {
     mediaUrl =
@@ -40,12 +47,26 @@ export function mapMarketToPrediction(market: ApiMarket): Prediction {
   // Ideally, your DB would store "mediaType". For now, we assume if it's not empty, let MediaPreview handle it.
   const isVideo = mediaStr.endsWith(".mp4") || mediaStr.endsWith(".webm");
 
+  const displayName = market.creatorDisplayName
+    ? market.creatorDisplayName
+    : `User ${market.creator.slice(0, 4)}...${market.creator.slice(-4)}`;
+
+  // 🟢 LOGIC: Use DB Username -> Fallback to "@0x..."
+  const username = market.creatorUsername
+    ? `@${market.creatorUsername}`
+    : `@${market.creator.slice(0, 6)}...${market.creator.slice(-4)}`;
+
+  // 🟢 LOGIC: Use DB Avatar -> Fallback to DiceBear
+  const avatar = market.creatorAvatar
+    ? market.creatorAvatar
+    : `https://api.dicebear.com/7.x/identicon/svg?seed=${market.creator}`;
+
   return {
     id: market.marketId.toString(),
     creator: {
-      name: `User ${market.creator.slice(0, 4)}`,
-      username: `@${market.creator.slice(0, 6)}...${market.creator.slice(-4)}`,
-      avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${market.creator}`,
+      name: displayName,
+      username: username,
+      avatar: avatar,
     },
     question: market.question,
     category: market.category || "General",
@@ -66,9 +87,9 @@ export function mapMarketToPrediction(market: ApiMarket): Prediction {
     noShares: 0,
     createdAt: new Date(market.timestamp * 1000).toISOString(),
     endsAt: new Date(market.endTime * 1000).toISOString(),
-    likes: 0,
-    comments: 0,
-    reposts: 0,
-    isLiked: false,
+    likes: Number(market.likeCount || 0),
+    comments: Number(market.commentCount || 0),
+    reposts: Number(market.repostCount || 0),
+    isLiked: Boolean(market.isLikedByCurrentUser || false),
   };
 }
