@@ -86,7 +86,7 @@ export function Profile({ targetAddress }: ProfileProps) {
 
         // A. Markets
         const createdRes = await fetch(
-          `${API_URL}/markets/created/${activeAddress}`
+          `${API_URL}/markets/created/${activeAddress}`,
         );
         const createdData: ApiMarket[] = await createdRes.json();
         const myMarkets = createdData.map(mapMarketToPrediction);
@@ -102,7 +102,7 @@ export function Profile({ targetAddress }: ProfileProps) {
         const myInvestments = positionsData
           .map((pos: any) => {
             const market = allMarketsData.find(
-              (m) => m.marketId === pos.marketId
+              (m) => m.marketId === pos.marketId,
             );
             if (!market) return null;
             const yesShares = Number(pos.yesShares);
@@ -164,7 +164,7 @@ export function Profile({ targetAddress }: ProfileProps) {
       formData.displayName,
       formData.bio,
       finalAvatarUrl,
-      storedReferrer
+      storedReferrer,
     );
 
     if (txHash) {
@@ -619,7 +619,7 @@ export function Profile({ targetAddress }: ProfileProps) {
                     <button
                       onClick={() => {
                         navigator.clipboard.writeText(
-                          `${window.location.origin}/?ref=${activeAddress}`
+                          `${window.location.origin}/?ref=${activeAddress}`,
                         );
                         toast.success("Referral link copied!");
                       }}
