@@ -403,31 +403,6 @@ export function Profile({ targetAddress }: ProfileProps) {
       </div>
 
       {/* Financials (Unchanged) */}
-      <div className="grid grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
-        {/* ... (Your existing Financials JSX) ... */}
-        <div className="bg-[#0f0f1a] border border-[#00ff88]/30 rounded-lg p-4 md:p-5">
-          <div className="flex items-center gap-2 mb-2">
-            <TrendingUp className="w-4 h-4 text-[#00ff88]" />
-            <div className="text-xs text-muted-foreground">Win Rate</div>
-          </div>
-          <div className="text-xl md:text-2xl text-[#00ff88] font-mono">
-            {stats.winRate}%
-          </div>
-        </div>
-        <div className="bg-[#0f0f1a] border border-[#1F87FC]/30 rounded-lg p-4 md:p-5">
-          <div className="flex items-center gap-2 mb-2">
-            <BarChart3 className="w-4 h-4 text-[#1F87FC]" />
-            <div className="text-xs text-muted-foreground">Total Profit</div>
-          </div>
-          <div
-            className={`text-xl md:text-2xl font-mono ${
-              stats.totalProfit >= 0 ? "text-[#1F87FC]" : "text-[#ff3366]"
-            }`}
-          >
-            ${stats.totalProfit}
-          </div>
-        </div>
-      </div>
 
       {/* Tabs */}
       <div className="flex gap-2 mb-4 md:mb-6 border-b border-border overflow-x-auto scrollbar-hide -mx-4 px-4">
