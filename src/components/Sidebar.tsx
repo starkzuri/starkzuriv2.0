@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useWallet } from "../context/WalletContext";
 import Logo from "../assets/ST4.png";
+import NetworkSwitcher from "./NetworkSwitcher";
 
 interface SidebarProps {
   activeScreen: string;
@@ -76,6 +77,7 @@ export function Sidebar({ activeScreen, onNavigate }: SidebarProps) {
           </button>
         ))}
       </nav>
+      <NetworkSwitcher defaultNetwork="testnet" />
 
       {/* Footer: Auth Logic */}
       {!isLoggedIn ? (
